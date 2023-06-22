@@ -40,7 +40,7 @@ You may have the VPC, subnets , MSK and Redshift serverless already created. If 
 ### Resource Creation in MSK Account
 Execute the following steps in MSK account as admin user. The steps will create VPC , MSK serverless ̄cluster, a security group for MSK cluster and MSK client, a cross account role to be assumed by Redshift , a role to create peering connection and a Route53 inbound resolver. The inbound resolver will be used for DNS resolution of MSK serverless cluster endpoint from the VPC of Redshift cluster. 
 ```shell
-git clone <>
+git clone https://github.com/akshayar/msk-samples.git
 ```
 Create a bucket where the cloudformation templates will be uploaded. 
 ```shell
