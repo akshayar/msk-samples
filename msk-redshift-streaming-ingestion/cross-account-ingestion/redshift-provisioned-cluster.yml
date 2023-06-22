@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  VPCCidr:
+    Type: String
+    Description: VPC Cidr
+  VPCStackTemplate:
+    Default: https://aksh-code-binaries-2.s3.amazonaws.com/MSKPrivateVPCOnly.yml
+    Type: String
+    Description: Template path
+  MasterUserName:
+    Type: String
+    Description: Redshift master password
+  MasterUserPassword:
+    NoEcho: true
+    Type: String
+    Description: Redshift master password
+  mskSourceCluster:
+    Type: String
+    Description: MSK Arn
+  mskActIamRole:
+    Type: String
+    Description: IAM Role in MSK account which has permission on MSK cluster
+  LambdaTemplatePath:
+    Default: https://aksh-code-binaries-2.s3.amazonaws.com/template-topic-list-mvn.yml
+    Type: String
+    Description: Cloudformation template for MSK Publisher.
+  LambdaBucketName:
+    Type: String
+    Description: Lambda Bucket.
+  LambdaCodeCodeKey:
+    Type: String
+    Description: Lambda Code Key.
+
+Resources:
+  RedshiftVPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Ref VPCStackTemplate
+      Parameters:
+        VPCCidr: !Ref VPCCidr
+  redshiftCluster:
+    Type: "AWS::Redshift::Cluster"
+    Properties:
+      DBName: "streamming"
+      MasterUsername: !Ref MasterUserName
+      MasterUserPassword: !Ref MasterUserPassword
+      NodeType: "ra3.xlplus"
+      ClusterType: "single-node"
+      IamRoles:
+        - !GetAtt redshiftNamespaceIamRole.Arn
+      EnhancedVpcRouting: true
+      PubliclyAccessible: false
+      VpcSecurityGroupIds:
+        - !Ref redshiftClusterSG
+      ClusterSubnetGroupName: !Ref redshiftClusterSubnetGroup
+      Tags:
+        - Key: Type
+          Value: streaming
+  redshiftClusterSubnetGroup:
+    Type: 'AWS::Redshift::ClusterSubnetGroup'
+    Properties:
+      Description: Redshift private subnet group
+      SubnetIds:
+        - !GetAtt RedshiftVPCStack.Outputs.PrivateSubnetMSKOne
+        - !GetAtt RedshiftVPCStack.Outputs.PrivateSubnetMSKTwo
+        - !GetAtt RedshiftVPCStack.Outputs.PrivateSubnetMSKThree
+      Tags:
+        - Key: Type
+          Value: streaming
+
+  redshiftClusterSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: The security group to be applied to Redshift
+      VpcId: !GetAtt RedshiftVPCStack.Outputs.VPCId
+  redshiftNamespaceIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - redshift.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: redshift-cross-act-streaming-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'sts:AssumeRole'
+                Resource: !Ref mskActIamRole
+      Path: /service-role/
+  MSKConnectivityTestLambda:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Ref LambdaTemplatePath
+      Parameters:
+        mskArn: !Ref mskSourceCluster
+        authType: NONE
+        securityGroupId: !Ref MSKConnectivityTestLambdaSG
+        privateSubnetId: !GetAtt RedshiftVPCStack.Outputs.PrivateSubnetMSKOne
+        BucketName: !Ref LambdaBucketName
+        CodeKey: !Ref LambdaCodeCodeKey
+
+  MSKConnectivityTestLambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: The security group to be applied to MSK connectivity test lambda
+      VpcId: !GetAtt RedshiftVPCStack.Outputs.VPCId
+
+Outputs:
+  redshiftCluster:
+    Description: Redshift cluster
+    Value: !Ref redshiftCluster
+  redshiftClusterSG:
+    Description: The SG of Redshift Cluster
+    Value: !Ref redshiftClusterSG
+  redshiftNamespaceIamRole:
+    Description: The IAM Role of Redshift namespace
+    Value: !Ref redshiftNamespaceIamRole
+  MSKConnectivityTestLambdaSG:
+    Description: The SG of MSKConnectivityTestLambdaSG
+    Value: !Ref MSKConnectivityTestLambdaSG

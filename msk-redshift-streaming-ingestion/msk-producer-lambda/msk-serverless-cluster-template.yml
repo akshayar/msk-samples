@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  vpcId:
+    Description: VPC Id
+    Type: AWS::EC2::VPC::Id
+  privateSubnetId1:
+    Description: Private Subnet 1 ID
+    Type: AWS::EC2::Subnet::Id
+  privateSubnetId2:
+    Description: Private Subnet 2 ID
+    Type: AWS::EC2::Subnet::Id
+  privateSubnetId3:
+    Description: Private Subnet 3 ID
+    Type: AWS::EC2::Subnet::Id
+  MSKSourceKafkaVersion:
+    Type: String
+    Default: 2.8.1
+    Description: The Apache Kafka version for the source Amazon MSK cluster.
+    AllowedValues:
+      - 2.6.1
+      - 2.7.1
+      - 2.7.2
+      - 2.8.0
+      - 2.8.1
+
+Resources:
+  MSKSourceCluster:
+    Type: AWS::MSK::ServerlessCluster
+    Properties:
+      ClientAuthentication:
+        Sasl:
+          Iam:
+            Enabled: True
+      ClusterName: !Join
+        - '-'
+        - - 'MSKSrc'
+          - !Ref 'AWS::StackName'
+      VpcConfigs:
+        - SubnetIds:
+            - !Ref privateSubnetId1
+            - !Ref privateSubnetId2
+            - !Ref privateSubnetId3
+          SecurityGroups: [ !GetAtt MSKSecurityGroup.GroupId ]
+
+  MSKSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: MSK Security Group
+      VpcId: !Ref vpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2181
+          ToPort: 2181
+          SourceSecurityGroupId: !Ref MSKClientSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 9098
+          ToPort: 9098
+          SourceSecurityGroupId: !Ref MSKClientSecurityGroup
+
+  MSKClientSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: The security group to be applied to publisher
+      VpcId: !Ref vpcId
+
+  MSKClientIamPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Policy for redshift streamign ingestion
+      ManagedPolicyName: redshift-cross-act-streaming-policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:Connect"
+              - "kafka-cluster:AlterCluster"
+              - "kafka-cluster:DescribeCluster"
+            Resource: !Ref MSKSourceCluster
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:*Topic*"
+              - "kafka-cluster:WriteData"
+              - "kafka-cluster:ReadData"
+            Resource: !Sub "arn:aws:kafka:${AWS::Region}:${AWS::AccountId}:topic/MSKSrc-${AWS::StackName}/*"
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:AlterGroup"
+              - "kafka-cluster:DescribeGroup"
+            Resource: !Sub "arn:aws:kafka:${AWS::Region}:${AWS::AccountId}:group/MSKSrc-${AWS::StackName}/*"
+          - Effect: Allow
+            Action: 'kafka:GetBootstrapBrokers'
+            Resource: !Ref MSKSourceCluster
+
+
+Outputs:
+  redshiftNamespace:
+    Description: Redshift Namespace
+    Value: !Ref redshiftNamespace
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftNamespace"
+  redshiftWorkgroup:
+    Description: Redshift workgroup
+    Value: !Ref redshiftWorkgroup
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftWorkgroup"
+  redshiftWorkgroupSG:
+    Description: The Security Group of Redshift workgroup
+    Value: !Ref redshiftWorkgroupSG
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftWorkgroupSG"
+  redshiftNamespaceIamRole:
+    Description: The IAM Role of Redshift namespace
+    Value: !GetAtt redshiftNamespaceIamRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftNamespaceIamRole"
+  mskActIamRoleArn:
+    Description: The IAM Role of MSK Account
+    Value: !Ref mskActIamRoleArn
+    Export:
+      Name: !Sub "${AWS::StackName}-mskActIamRoleArn"
+  mskSourceClusterArn:
+    Description: The ARN of source MSK cluster
+    Value: !Ref mskSourceClusterArn
+    Export:
+      Name: !Sub "${AWS::StackName}-mskSourceClusterArn"
+  schemaCreationCommand:
+    Description: The schema creation command
+    Value: !Sub "CREATE EXTERNAL SCHEMA mskschema    FROM MSK
+                 IAM_ROLE '${redshiftNamespaceIamRole.Arn},${mskActIamRoleArn}'
+                 AUTHENTICATION  IAM
+                 CLUSTER_ARN '${mskSourceClusterArn}';"

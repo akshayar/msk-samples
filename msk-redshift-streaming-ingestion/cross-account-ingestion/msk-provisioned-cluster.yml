@@ -1,0 +1,201 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  VPCCidr:
+    Type: String
+    Description: VPC Cidr
+  VPCStackTemplate:
+    Default: https://aws-streaming-artifacts.s3.amazonaws.com/msk-lab-resources/MSKLabs/MSKPrivateVPCOnly.yml
+    Type: String
+    Description: Template path
+  PeerAccountId:
+    Type: String
+    Description: The account id of the requester
+    Default: NONE
+  MSKSourceKafkaVersion:
+    Type: String
+    Default: 2.8.1
+    Description: The Apache Kafka version for the source Amazon MSK cluster.
+    AllowedValues:
+      - 2.6.1
+      - 2.7.1
+      - 2.7.2
+      - 2.8.0
+      - 2.8.1
+  LambdaTemplatePath:
+    Default: NONE
+    Type: String
+    Description: Cloudformation template for MSK Publisher.
+  LambdaBucketName:
+    Type: String
+    Description: Code Bucket of MSK publisher lambda
+  LambdaCodeFileKey:
+    Type: String
+    Description: Code Key of MSK publisher lambda
+Conditions:
+  CreatePublisherLambda: !Not [!Equals [!Ref LambdaTemplatePath, 'NONE']]
+  CreatePeeringAcceptorRole: !Not [!Equals [!Ref PeerAccountId, 'NONE']]
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Description: VPC Stack
+    Properties:
+      TemplateURL: !Ref VPCStackTemplate
+      Parameters:
+        VPCCidr: !Ref VPCCidr
+
+  vpcPeeringAcceptorRole:
+    Type: 'AWS::IAM::Role'
+    Condition: CreatePeeringAcceptorRole
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Principal:
+              AWS: !Ref PeerAccountId
+            Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'ec2:AcceptVpcPeeringConnection'
+                Resource: '*'
+
+  MSKSourceCluster:
+    Type: AWS::MSK::Cluster
+    Description: MSK Source Cluster
+    Properties:
+      BrokerNodeGroupInfo:
+        ClientSubnets:
+          - !GetAtt VPC.Outputs.PrivateSubnetMSKOne
+          - !GetAtt VPC.Outputs.PrivateSubnetMSKTwo
+          - !GetAtt VPC.Outputs.PrivateSubnetMSKThree
+        InstanceType: kafka.t3.small
+        SecurityGroups: [!GetAtt MSKSecurityGroup.GroupId]
+        StorageInfo:
+          EBSStorageInfo:
+            VolumeSize: 100
+      ClusterName: !Join
+        - '-'
+        - - 'MSKSrc'
+          - !Ref 'AWS::StackName'
+      EncryptionInfo:
+        EncryptionInTransit:
+          ClientBroker: TLS_PLAINTEXT
+          InCluster: true
+      EnhancedMonitoring: DEFAULT
+      KafkaVersion: !Ref MSKSourceKafkaVersion
+      NumberOfBrokerNodes: 3
+      ClientAuthentication:
+        Sasl:
+          Iam:
+            Enabled: True
+        Unauthenticated:
+          Enabled: True
+  MSKSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Description: MSK Security Group
+    Properties:
+      GroupDescription: MSK Security Group
+      GroupName: !Sub "${AWS::StackName}-msk-sg"
+      VpcId: !GetAtt VPC.Outputs.VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2181
+          ToPort: 2181
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 9094
+          ToPort: 9094
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 9098
+          ToPort: 9098
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 9092
+          ToPort: 9092
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+  MSKPublisherSG:
+    Type: AWS::EC2::SecurityGroup
+    Description: Security Group of client which publishes to MSK
+    Properties:
+      GroupDescription: The security group to be applied to publisher
+      GroupName: !Sub "${AWS::StackName}-client-sg"
+      VpcId: !GetAtt VPC.Outputs.VPCId
+
+  redshiftStreamingManagedPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Policy for redshift streaming ingestion
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 'kafka:GetBootstrapBrokers'
+            Resource: !Ref MSKSourceCluster
+
+  mskRedshfitStreamingIngestionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref redshiftStreamingManagedPolicy
+      Path: /service-role/
+
+  MSKPublisherLambda:
+    Condition: CreatePublisherLambda
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Ref LambdaTemplatePath
+      Parameters:
+        mskArn: !Ref MSKSourceCluster
+        authType: NONE
+        topicName: "testtopic"
+        securityGroupId: !Ref MSKPublisherSG
+        privateSubnetId: !GetAtt VPC.Outputs.PrivateSubnetMSKOne
+        BucketName: !Ref LambdaBucketName
+        CodeKey: !Ref LambdaCodeFileKey
+        redshiftStreamingManagedPolicy: !Ref redshiftStreamingManagedPolicy
+
+
+
+
+Outputs:
+  MSKSourceClusterArn:
+    Description: The Arn for the Source MSK cluster
+    Value: !Ref MSKSourceCluster
+    Export:
+      Name: !Sub "${AWS::StackName}-MSKSourceClusterArn"
+  MSKSourceClusterSG:
+    Description: The SG for the Source MSK cluster
+    Value: !Ref MSKSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-MSKSecurityGroup"
+  KakfaPublisherLambdaSG:
+    Description: The SG of the Kafka publisher client
+    Value: !Ref MSKPublisherSG
+    Export:
+      Name: !Sub "${AWS::StackName}-MSKPublisherSG"
+  redshiftStrIngestCrossActRole:
+    Description: Redshift streaming ingestion role
+    Value: !GetAtt redshiftStrIngestCrossActRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftStrIngestCrossActRole"
+  mskVPCId:
+    Description: VPC Id of MSK Cluster
+    Value: !GetAtt VPC.Outputs.VPCId
+    Export:
+      Name: !Sub "${AWS::StackName}-mskVPCId"

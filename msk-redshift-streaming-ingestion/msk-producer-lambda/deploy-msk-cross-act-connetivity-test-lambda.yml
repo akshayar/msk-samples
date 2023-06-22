@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: The template deploys VPC, Redshift serverles namespace and workgroup and connectivity test lambda
+Parameters:
+  RedshiftMainStackName:
+    Type: String
+    Description: VPC Stack Name
+  AuthType:
+    Type: String
+    Description: Auth Type
+    Default: "NONE"
+  LambdaTemplatePath:
+    Default: https://aksh-code-binaries-2.s3.amazonaws.com/template-topic-list-mvn.yml
+    Type: String
+    Description: Cloudformation template for MSK Publisher.
+  LambdaBucketName:
+    Type: String
+    Description: Lambda Bucket.
+  LambdaCodeCodeKey:
+    Type: String
+    Description: Lambda Code Key.
+Resources:
+  MSKConnectivityTestLambda:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Ref LambdaTemplatePath
+      Parameters:
+        mskArn:
+          Fn::ImportValue:
+            !Sub "${RedshiftMainStackName}-mskSourceClusterArn"
+        authType: !Ref AuthType
+        securityGroupId:
+          Fn::ImportValue:
+            !Sub "${RedshiftMainStackName}-redshiftWorkgroupSG"
+        privateSubnetId:
+          Fn::ImportValue:
+            !Sub "${RedshiftMainStackName}-PrivateSubnetOne"
+        BucketName: !Ref LambdaBucketName
+        CodeKey: !Ref LambdaCodeCodeKey
+        redshiftStreamingManagedPolicy:
+          Fn::ImportValue:
+            !Sub "${RedshiftMainStackName}-redshiftStreamingManagedPolicy"
+        mskActIamRoleArn:
+          Fn::ImportValue:
+            !Sub "${RedshiftMainStackName}-mskSourceClusterArn"
+

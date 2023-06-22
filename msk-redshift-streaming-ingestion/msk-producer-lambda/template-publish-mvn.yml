@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Lambda application triggered by Timer.
+Parameters:
+  bootstrapServer:
+    Default: ""
+    Description: MSK Bootstrap configuration
+    Type: String
+  mskArn:
+    Default: ""
+    Description: MSK Arn, supply either of them, bootsrap takes precedence
+    Type: String
+  authType:
+    Default: "NONE"
+    Description: MSK Auth Type
+    Type: String
+  topicName:
+    Default: "testtopic"
+    Description: Topic Name
+    Type: String
+  securityGroupId:
+    Description: Security Group ID
+    Type: AWS::EC2::SecurityGroup::Id
+  privateSubnetId:
+    Description: Private Subnet ID
+    Type: AWS::EC2::Subnet::Id
+  BucketName:
+    Description: Code Bucket Name
+    Type: String
+  CodeKey:
+    Description: Code Key
+    Type: String
+  redshiftStreamingManagedPolicy:
+    Description: Policy ARN
+    Type: String
+Resources:
+  function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: !Ref BucketName
+        Key: !Ref CodeKey
+      Handler: com.aws.sample.main.PublisherMain::handleRequest
+      Runtime: java11
+      Description: Java function
+      MemorySize: 2048
+      Timeout: 300
+      # Function's execution role
+      Role: !GetAtt role.Arn
+      Environment:
+        Variables:
+          AUTH_TYPE: !Ref authType
+          BOOTSTRAP_SERVER: !Ref bootstrapServer
+          MSK_ARN: !Ref mskArn
+          LAMBDA_PROPERTY_SCHEMA_REGISTRY: ""
+          LAMBDA_PROPERTY_TOPIC: !Ref topicName
+          LAMBDA_PROPERTY_REPLICATION_FACTOR: "3"
+          LAMBDA_PROPERTY_PARTITIONS: "3"
+          LAMBDA_PROPERTY_TEMPLATE_BUCKET: ""
+          LAMBDA_PROPERTY_TEMPLATE_PATH: ""
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref securityGroupId
+        SubnetIds:
+          - !Ref privateSubnetId
+      Events:
+        ScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: 'rate(10 minutes)'
+            Enabled: true
+      Tracing: Active
+  role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - !Ref redshiftStreamingManagedPolicy
+      Policies:
+        - PolicyName: msk-iamauth
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 's3:*'
+                Resource: '*'
+      Path: /service-role/
+Outputs:
+  Function:
+    Description: Function
+    Value: !Ref function
+  FunctionRole:
+    Description: Function Role
+    Value: !Ref securityGroupId
+  FunctionSG:
+    Description: Function Security Group
+    Value: !Ref role

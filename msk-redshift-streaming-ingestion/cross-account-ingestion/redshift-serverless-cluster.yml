@@ -1,0 +1,224 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: The template deploys VPC, Redshift serverles namespace and workgroup and connectivity test lambda
+Parameters:
+  VPCCidr:
+    Type: String
+    Description: VPC Cidr
+  VPCStackTemplate:
+    Default: https://aksh-code-binaries-2.s3.amazonaws.com/MSKPrivateVPCOnly.yml
+    Type: String
+    Description: Template path
+  mskSourceClusterArn:
+    Type: String
+    Description: MSK Arn
+  mskActIamRoleArn:
+    Type: String
+    Description: IAM Role in MSK account which has permission on MSK cluster
+  peerVpcId:
+    Type: String
+    Description: The VPC id of the keyspaces VPC endpoint
+    Default: NONE
+  peerAccountId:
+    Type: String
+    Description: The account id of the keyspaces account
+    Default: NONE
+  peerVPCCidr:
+    Type: String
+    Description: Cidr block of the VPC to be peered
+    Default: NONE
+  peeringAcceptorRoleArn:
+    Type: String
+    Description: The ARN of the role in the keyspaces account
+    Default: NONE
+Conditions:
+  CreatePeeringConnection: !Not [!Equals [!Ref peerVpcId, 'NONE']]
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Ref VPCStackTemplate
+      Parameters:
+        VPCCidr: !Ref VPCCidr
+
+  redshiftNamespace:
+    Type: AWS::RedshiftServerless::Namespace
+    Properties:
+      DbName: streamming
+      DefaultIamRoleArn: !GetAtt redshiftNamespaceIamRole.Arn
+      IamRoles:
+        - !GetAtt redshiftNamespaceIamRole.Arn
+      LogExports:
+        - userlog
+        - connectionlog
+        - useractivitylog
+      NamespaceName: streammingns
+
+  redshiftWorkgroup:
+    Type: AWS::RedshiftServerless::Workgroup
+    Properties:
+      BaseCapacity: 32
+      EnhancedVpcRouting: true
+      NamespaceName: !Ref redshiftNamespace
+      PubliclyAccessible: false
+      SecurityGroupIds:
+        - !Ref redshiftWorkgroupSG
+      SubnetIds:
+        - !GetAtt VPC.Outputs.PrivateSubnetMSKOne
+        - !GetAtt VPC.Outputs.PrivateSubnetMSKTwo
+        - !GetAtt VPC.Outputs.PrivateSubnetMSKThree
+      WorkgroupName: streamingwork
+
+  redshiftWorkgroupSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-red-workgrp-sg"
+      GroupDescription: The security group to be applied to Redshift
+      VpcId: !GetAtt VPC.Outputs.VPCId
+
+  redshiftStreamingManagedPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Policy for redshift streamign ingestion
+      ManagedPolicyName: redshift-cross-act-streaming-policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 'sts:AssumeRole'
+            Resource: !Ref mskActIamRoleArn
+  redshiftNamespaceIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              Service:
+                - redshift.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref redshiftStreamingManagedPolicy
+      Path: /service-role/
+
+  DNSEndpointResolverSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: DNS Endpoint Resolver SG
+      GroupName: !Sub "${AWS::StackName}-msk-serverless-res-sg"
+      VpcId: !GetAtt VPC.Outputs.VPCId
+      SecurityGroupIngress:
+        - IpProtocol: udp
+          ToPort: 53
+          FromPort: 53
+          CidrIp: !Ref VPCCidr
+        - IpProtocol: tcp
+          ToPort: 53
+          FromPort: 53
+          CidrIp: !Ref VPCCidr
+
+  DNSOutboundResolver:
+    Type: AWS::Route53Resolver::ResolverEndpoint
+    Properties:
+      Name: MSKVPCOutbound
+      Direction: OUTBOUND
+      ResolverEndpointType: IPV4
+      IpAddresses:
+        - SubnetId: !GetAtt VPC.Outputs.PrivateSubnetMSKOne
+        - SubnetId: !GetAtt VPC.Outputs.PrivateSubnetMSKTwo
+      SecurityGroupIds:
+        - !Ref DNSEndpointResolverSG
+      Tags:
+        - Key: Name
+          Value: MSKVPCOutbound
+
+  bastionCloud9:
+    Type: AWS::Cloud9::EnvironmentEC2
+    Properties:
+      InstanceType: t3.small
+      Description: Cloud9 instance for spark account bastion node
+      SubnetId: !GetAtt VPC.Outputs.PublicSubnetOne
+      AutomaticStopTimeMinutes: 30
+      ConnectionType: CONNECT_SSM
+
+  vpcPeeringConnection:
+    Type: 'AWS::EC2::VPCPeeringConnection'
+    Condition: CreatePeeringConnection
+    DependsOn: VPC
+    Properties:
+      VpcId: !GetAtt VPC.Outputs.VPCId
+      PeerVpcId: !Ref peerVpcId
+      PeerOwnerId: !Ref peerAccountId
+      PeerRoleArn: !Ref peeringAcceptorRoleArn
+      Tags:
+        - Key: Name
+          Value: spark-keyspaces-peering-connection
+
+  peerPublicRoute:
+    Type: AWS::EC2::Route
+    Condition: CreatePeeringConnection
+    DependsOn: vpcPeeringConnection
+    Properties:
+      RouteTableId: !GetAtt VPC.Outputs.PublicRouteTableId
+      DestinationCidrBlock: !Ref peerVPCCidr
+      VpcPeeringConnectionId: !Ref vpcPeeringConnection
+  peerPrivateRoute:
+    Type: AWS::EC2::Route
+    Condition: CreatePeeringConnection
+    DependsOn: vpcPeeringConnection
+    Properties:
+      RouteTableId: !GetAtt VPC.Outputs.PrivateRouteTableId
+      DestinationCidrBlock: !Ref peerVPCCidr
+      VpcPeeringConnectionId: !Ref vpcPeeringConnection
+
+Outputs:
+  privateSubnetOne:
+    Description: Private subnet one
+    Value: !GetAtt VPC.Outputs.PrivateSubnetMSKOne
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetOne"
+  redshiftNamespace:
+    Description: Redshift Namespace
+    Value: !Ref redshiftNamespace
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftNamespace"
+  redshiftWorkgroup:
+    Description: Redshift workgroup
+    Value: !Ref redshiftWorkgroup
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftWorkgroup"
+  redshiftWorkgroupSG:
+    Description: The Security Group of Redshift workgroup
+    Value: !Ref redshiftWorkgroupSG
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftWorkgroupSG"
+  redshiftNamespaceIamRole:
+    Description: The IAM Role of Redshift namespace
+    Value: !GetAtt redshiftNamespaceIamRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftNamespaceIamRole"
+  mskActIamRoleArn:
+    Description: The IAM Role of MSK Account
+    Value: !Ref mskActIamRoleArn
+    Export:
+      Name: !Sub "${AWS::StackName}-mskActIamRoleArn"
+  mskSourceClusterArn:
+    Description: The ARN of source MSK cluster
+    Value: !Ref mskSourceClusterArn
+    Export:
+      Name: !Sub "${AWS::StackName}-mskSourceClusterArn"
+  redshiftStreamingManagedPolicy:
+    Description: The ARN Redshift streaming managed policy
+    Value: !Ref redshiftStreamingManagedPolicy
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftStreamingManagedPolicy"
+  schemaCreationCommand:
+    Description: The schema creation command
+    Value: !Sub "CREATE EXTERNAL SCHEMA mskschema    FROM MSK
+                 IAM_ROLE '${redshiftNamespaceIamRole.Arn},${mskActIamRoleArn}'
+                 AUTHENTICATION  IAM
+                 CLUSTER_ARN '${mskSourceClusterArn}';"

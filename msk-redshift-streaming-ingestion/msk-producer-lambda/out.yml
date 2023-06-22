@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: An AWS Lambda application triggered by Timer.
+Parameters:
+  bootstrapServer:
+    Description: MSK Bootstrap configuration
+    Type: String
+  authType:
+    Default: NONE
+    Description: MSK Auth Type
+    Type: String
+  topicName:
+    Default: testtopic
+    Description: Topic Name
+    Type: String
+  securityGroupId:
+    Description: Security Group ID
+    Type: AWS::EC2::SecurityGroup::Id
+  privateSubnetId:
+    Description: Private Subnet ID
+    Type: AWS::EC2::Subnet::Id
+  codeUri:
+    Description: Private Subnet ID
+    Type: AWS::EC2::Subnet::Id
+Resources:
+  function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Ref: codeUri
+      Handler: com.aws.sample.main.PublisherMain::handleRequest
+      Runtime: java11
+      Description: Java function
+      MemorySize: 2048
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+        - role
+        - Arn
+      Environment:
+        Variables:
+          AUTH_TYPE:
+            Ref: authType
+          BOOTSTRAP_SERVER:
+            Ref: bootstrapServer
+          LAMBDA_PROPERTY_SCHEMA_REGISTRY: ''
+          LAMBDA_PROPERTY_TOPIC:
+            Ref: topicName
+          LAMBDA_PROPERTY_REPLICATION_FACTOR: '3'
+          LAMBDA_PROPERTY_PARTITIONS: '3'
+          LAMBDA_PROPERTY_TEMPLATE_BUCKET: ''
+          LAMBDA_PROPERTY_TEMPLATE_PATH: ''
+        VpcConfig:
+          SecurityGroupIds:
+            Ref: securityGroupId
+          SubnetIds:
+          - Ref: privateSubnetId
+      Tracing: Active
+  role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+      - PolicyName: msk-iamauth
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action: kafka:*
+            Resource: '*'
+      Path: /service-role/

@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Lambda application triggered by Timer.
+Parameters:
+  mskBootstrapServer:
+    Default: ""
+    Description: MSK Bootstrap configuration
+    Type: String
+  mskArn:
+    Default: ""
+    Description: MSK Arn, supply either of them, bootsrap takes precedence
+    Type: String
+  authType:
+    Default: "NONE"
+    Description: MSK Auth Type
+    Type: String
+  securityGroupId:
+    Description: Security Group ID
+    Type: AWS::EC2::SecurityGroup::Id
+  privateSubnetId:
+    Description: Private Subnet ID
+    Type: AWS::EC2::Subnet::Id
+  BucketName:
+    Description: Code Bucket Name
+    Type: String
+  CodeKey:
+    Description: Code Key
+    Type: String
+  redshiftStreamingManagedPolicy:
+    Description: Policy ARN
+    Type: String
+  mskActIamRoleArn:
+    Description: Role
+    Type: String
+Resources:
+  iamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: list-cluster-permission
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'kafka:ListClusters'
+                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - !Ref redshiftStreamingManagedPolicy
+      Path: /service-role/
+  function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: !Ref BucketName
+        Key: !Ref CodeKey
+      Handler: com.aws.sample.main.TopicListMain::handleRequest
+      Runtime: java11
+      Description: Java function
+      MemorySize: 2048
+      Timeout: 300
+      # Function's execution role
+      Role: !GetAtt iamRole.Arn
+      Environment:
+        Variables:
+          AUTH_TYPE: !Ref authType
+          BOOTSTRAP_SERVER: !Ref mskBootstrapServer
+          MSK_ARN: !Ref mskArn
+          MSK_ACT_ROLE: !Ref mskActIamRoleArn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref securityGroupId
+        SubnetIds:
+          - !Ref privateSubnetId
+      Events:
+        ScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: 'rate(10 minutes)'
+            Enabled: true
+      Tracing: Active
+Outputs:
+  Function:
+    Description: Function
+    Value: !Ref function
+  FunctionRole:
+    Description: Function Role
+    Value: !GetAtt iamRole.Arn
+  FunctionSG:
+    Description: Function Security Group
+    Value: !Ref securityGroupId

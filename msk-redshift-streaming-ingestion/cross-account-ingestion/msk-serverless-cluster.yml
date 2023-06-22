@@ -1,0 +1,215 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  VPCCidr:
+    Type: String
+    Description: VPC Cidr
+  VPCStackTemplate:
+    Default: https://aws-streaming-artifacts.s3.amazonaws.com/msk-lab-resources/MSKLabs/MSKPrivateVPCOnly.yml
+    Type: String
+    Description: Template path
+  PeerAccountId:
+    Type: String
+    Description: The account id of the requester
+    Default: NONE
+  PeerVPCCidr:
+    Type: String
+    Description: Peer VPC Cidr
+Conditions:
+  CreatePeeringAcceptorRole: !Not [!Equals [!Ref PeerAccountId, 'NONE']]
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Description: VPC Stack
+    Properties:
+      TemplateURL: !Ref VPCStackTemplate
+      Parameters:
+        VPCCidr: !Ref VPCCidr
+
+  vpcPeeringAcceptorRole:
+    Type: 'AWS::IAM::Role'
+    Condition: CreatePeeringAcceptorRole
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Principal:
+              AWS: !Ref PeerAccountId
+            Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'ec2:AcceptVpcPeeringConnection'
+                Resource: '*'
+
+  MSKSourceCluster:
+    Type: AWS::MSK::ServerlessCluster
+    Description: MSK Source Cluster
+    Properties:
+      ClientAuthentication:
+        Sasl:
+          Iam:
+            Enabled: True
+      ClusterName: !Join
+        - '-'
+        - - 'MSKSrc'
+          - !Ref 'AWS::StackName'
+      VpcConfigs:
+        - SubnetIds:
+            - !GetAtt VPC.Outputs.PrivateSubnetMSKOne
+            - !GetAtt VPC.Outputs.PrivateSubnetMSKTwo
+            - !GetAtt VPC.Outputs.PrivateSubnetMSKThree
+          SecurityGroups: [ !GetAtt MSKSecurityGroup.GroupId ]
+
+  MSKSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Description: MSK Security Group
+    Properties:
+      GroupDescription: MSK Security Group
+      GroupName: !Sub "${AWS::StackName}-msk-sg"
+      VpcId: !GetAtt VPC.Outputs.VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2181
+          ToPort: 2181
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 9098
+          ToPort: 9098
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 2181
+          ToPort: 2181
+          CidrIp: !Ref PeerVPCCidr
+        - IpProtocol: tcp
+          FromPort: 9098
+          ToPort: 9098
+          CidrIp: !Ref PeerVPCCidr
+
+  MSKPublisherSG:
+    Type: AWS::EC2::SecurityGroup
+    Description: Security Group of client which publishes to MSK
+    Properties:
+      GroupDescription: The security group to be applied to publisher
+      GroupName: !Sub "${AWS::StackName}-client-sg"
+      VpcId: !GetAtt VPC.Outputs.VPCId
+
+  redshiftStreamingManagedPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Policy for redshift streaming ingestion
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:Connect"
+              - "kafka-cluster:AlterCluster"
+              - "kafka-cluster:DescribeCluster"
+            Resource: !Ref MSKSourceCluster
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:*Topic*"
+              - "kafka-cluster:WriteData"
+              - "kafka-cluster:ReadData"
+            Resource: !Sub "arn:aws:kafka:${AWS::Region}:${AWS::AccountId}:topic/MSKSrc-${AWS::StackName}/*"
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:AlterGroup"
+              - "kafka-cluster:DescribeGroup"
+            Resource: !Sub "arn:aws:kafka:${AWS::Region}:${AWS::AccountId}:group/MSKSrc-${AWS::StackName}/*"
+          - Effect: Allow
+            Action: 'kafka:GetBootstrapBrokers'
+            Resource: !Ref MSKSourceCluster
+  redshiftStrIngestCrossActRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref redshiftStreamingManagedPolicy
+      Path: /service-role/
+
+  DNSEndpointResolverSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: DNS Endpoint Resolver SG
+      GroupName: !Sub "${AWS::StackName}-msk-serverless-res-sg"
+      VpcId: !GetAtt VPC.Outputs.VPCId
+      SecurityGroupIngress:
+        - IpProtocol: udp
+          ToPort: 53
+          FromPort: 53
+          CidrIp: !Ref PeerVPCCidr
+        - IpProtocol: tcp
+          ToPort: 53
+          FromPort: 53
+          CidrIp: !Ref PeerVPCCidr
+  DNSInboundResolver:
+    Type: AWS::Route53Resolver::ResolverEndpoint
+    Properties:
+      Name: MSKVPCInbound
+      Direction: INBOUND
+      ResolverEndpointType: IPV4
+      IpAddresses:
+        - SubnetId: !GetAtt VPC.Outputs.PrivateSubnetMSKOne
+        - SubnetId: !GetAtt VPC.Outputs.PrivateSubnetMSKTwo
+      SecurityGroupIds:
+        - !Ref DNSEndpointResolverSG
+      Tags:
+        - Key: Name
+          Value: MSKVPCInbound
+
+Outputs:
+  mskVPCId:
+    Description: VPC Id of MSK Cluster
+    Value: !GetAtt VPC.Outputs.VPCId
+    Export:
+      Name: !Sub "${AWS::StackName}-mskVPCId"
+  privateSubnetOne:
+    Description: Private subnet one
+    Value: !GetAtt VPC.Outputs.PrivateSubnetMSKOne
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetOne"
+  MSKSourceClusterArn:
+    Description: The Arn for the Source MSK cluster
+    Value: !Ref MSKSourceCluster
+    Export:
+      Name: !Sub "${AWS::StackName}-MSKSourceClusterArn"
+  MSKSourceClusterSG:
+    Description: The SG for the Source MSK cluster
+    Value: !Ref MSKSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-MSKSecurityGroup"
+  KakfaPublisherLambdaSG:
+    Description: The SG of the Kafka publisher client
+    Value: !Ref MSKPublisherSG
+    Export:
+      Name: !Sub "${AWS::StackName}-MSKPublisherSG"
+  redshiftStrIngestCrossActRole:
+    Description: Redshift streaming ingestion role
+    Value: !GetAtt redshiftStrIngestCrossActRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftStrIngestCrossActRole"
+  redshiftStreamingManagedPolicy:
+    Description: The ARN Redshift streaming managed policy
+    Value: !Ref redshiftStreamingManagedPolicy
+    Export:
+      Name: !Sub "${AWS::StackName}-redshiftStreamingManagedPolicy"
+  vpcPeeringAcceptorRole:
+    Description: Role Arn of the peering accepter
+    Value: !GetAtt vpcPeeringAcceptorRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-vpcPeeringAcceptorRoleArn"
