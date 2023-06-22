@@ -6,18 +6,12 @@ private subnet and can not access internet.
 2. MSK is hosted in a separate account where workload related to webservices are hosted. The MSK cluster gets 
 ClickStream data from applications. The data needs to be ingested and analyzed in Redshift. MSK is hosted in private subnet and can not access public internet.
 
-For this document I am taking two approaches , in the first both Redshift and MSK are serverless. In the second , both are hosted using provisioned model. The high level solution architecture is similar for both the solution, however the DNS resolution approach will be different. 
-
+For this document  Redshift serverlss and MSK serverless are used. 
 ## Redshift Serverless with MSK serverless
 Following diagram shows the high level architecture of the solution -
 ![Redshift Serverless with MSK serverless](./images/redshift-serverless-msk-serverless-cross-act-1.png)
 
 ![Redshift Serverless with MSK serverless](./images/redshift-serverless-msk-serverless-cross-act-2.png)
-
-
-## Redshift Provisioned with MSK provisioned
-Following diagram shows the high level architecture of the solution -
-[![Redshift Provisioned with MSK provisioned](./images/redshift-provisioned-msk-provisioned.png)](./images/redshift-provisioned-msk-provisioned.png)
 
 # Redshift Serverless with MSK serverless
 ## High Level Steps
@@ -317,8 +311,6 @@ REFRESH MATERIALIZED VIEW MyView1;
 select count(*) from MyView1;
 ```
 3. The command above should be successful and MyView1 should have data.
-# Redshift Provisioned with MSK provisioned
-## High Level Steps̄
 
 
 
