@@ -194,7 +194,43 @@ The Security group created for Redshift serverless cluster does not have any ing
 The Security group created for Route53 outbound resolve looks like  -
 ![image](./images/route53-outbound-sg.png)
 The peering connection looks like -
-![image](./images/peering-connection.png)
+```json
+{
+   "AccepterVpcInfo": {
+      "CidrBlock": "172.16.0.0/16",
+      "CidrBlockSet": [
+         {
+            "CidrBlock": "172.16.0.0/16"
+         }
+      ],
+      "OwnerId": "MSK_ACCOUNT_ID",
+      "PeeringOptions": {
+         "AllowDnsResolutionFromRemoteVpc": false,
+         "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+         "AllowEgressFromLocalVpcToRemoteClassicLink": false
+      },
+      "VpcId": "vpc-0698cb6744a727a84",
+      "Region": "ap-south-1"
+   },
+   "RequesterVpcInfo": {
+      "CidrBlock": "10.0.0.0/16",
+      "CidrBlockSet": [
+         {
+            "CidrBlock": "10.0.0.0/16"
+         }
+      ],
+      "OwnerId": "REDSHIFT_ACCOUNT_ID",
+      "VpcId": "vpc-09bab817bfb93d4ce",
+      "Region": "ap-south-1"
+   },
+   "Status": {
+      "Code": "active",
+      "Message": "Active"
+   },
+   "Tags": [],
+   "VpcPeeringConnectionId": "pcx-072e54384415e54e8"
+}
+```
 The routing table of private subnet looks like -
 ![image](./images/redshift-private-subnet-route.png)
 The routing table of public subnet looks like -
