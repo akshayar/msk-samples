@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Description: The template deploys VPC and Redshift provisioned cluster.
 Parameters:
   VPCCidr:
     Type: String

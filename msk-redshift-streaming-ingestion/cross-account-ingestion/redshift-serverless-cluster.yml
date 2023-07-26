@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: The template deploys VPC, Redshift serverles namespace and workgroup and connectivity test lambda
+Description: The template deploys VPC, Redshift serverles namespace and workgroup .
 Parameters:
   VPCCidr:
     Type: String

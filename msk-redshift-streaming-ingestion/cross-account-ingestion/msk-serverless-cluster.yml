@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Description: The template deploys VPC,  MSK cluster and Route53 resolver.
 Parameters:
   VPCCidr:
     Type: String

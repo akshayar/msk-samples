@@ -194,6 +194,7 @@ The Security group created for Redshift serverless cluster does not have any ing
 The Security group created for Route53 outbound resolve looks like  -
 ![image](./images/route53-outbound-sg.png)
 The peering connection looks like -
+
 ```json
 {
    "AccepterVpcInfo": {
@@ -349,4 +350,8 @@ select count(*) from MyView1;
 3. The command above should be successful and MyView1 should have data.
 
 
-
+# Cleanup
+1. Disassociate VPC from msk-serverless-resolver rule created above and delete the rule. 
+2. Delete stack for redshift cluster. 
+3. Delete stack for MSK publisher lambda `msk-publisher-lambda` created above. 
+3. Delete stack for MSK cluster. 
