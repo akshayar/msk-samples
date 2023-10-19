@@ -8,6 +8,7 @@ spring:
     maxPollInterval: 600000
     maxInFlightReqPerConnInParallel: 5
     maxInFlightReqPerConnInSync: 1
+    deliveryTimeoutMs: 60000
     producerRetryTimeOutMilliSeconds: 60000
     heartBeatsIntervalInMilli: 3000
     sessionTimeOutInMilli: 10000

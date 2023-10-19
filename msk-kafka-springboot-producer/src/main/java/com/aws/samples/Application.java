@@ -1,6 +1,9 @@
 package com.aws.samples;
 
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,13 +11,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.Environment;
 import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
 import java.io.FileReader;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.TimerTask;
 
 /**
@@ -32,6 +44,13 @@ public class Application
     private int partitionCount;
     @Value("${spring.kafka.minIsr}")
     private String minIsr;
+
+    @Autowired
+    private Environment env;
+    @Autowired
+    private ProducerFactory producerFactory;
+    @Autowired
+    KafkaTemplate<String, String> template;
     private final Logger logger = LoggerFactory.getLogger(Application.class);
     private static String topicData;
     public static void main(String[] args) throws  Exception{
@@ -53,7 +72,36 @@ public class Application
     }
 
     @Bean
-    public ApplicationRunner runner(KafkaTemplate<String, String> template) {
+    public ProducerFactory<String, String> producerFactory() {
+        return new DefaultKafkaProducerFactory<>(senderProps());
+    }
+
+    @Bean
+    public KafkaTemplate<String, String> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+
+    @Bean
+    public KafkaAdmin kafkaAdmin() {
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, env.getProperty("spring.kafka.bootstrapAddress"));
+        return new KafkaAdmin(configs);
+    }
+
+    private Map<String, Object> senderProps() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, env.getProperty("spring.kafka.bootstrapAddress"));
+        props.put(ProducerConfig.ACKS_CONFIG, env.getProperty("spring.kafka.acknowledgment"));
+        props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, env.getProperty("spring.kafka.maxBlockTime"));
+        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, env.getProperty("spring.kafka.bufferMemory"));
+        props.put(ProducerConfig.SEND_BUFFER_CONFIG, env.getProperty("spring.kafka.sendBufferBytes"));
+        props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, env.getProperty("spring.kafka.maxInFlightReqPerConnInParallel"));
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        return props;
+    }
+    @Bean
+    public ApplicationRunner runner() {
 
         return args -> {
             // create timer task to send message
@@ -64,7 +112,9 @@ public class Application
                 private int counter=1;
                 @Override
                 public void run() {
+
                     template.send(topic, topicData.replaceAll("COUNT",""+counter++));
+                    logger.info("Message no {} sent to topic {} ",counter,topic);
                 }
             };
             timer.schedule(task, 1000, 1000);
