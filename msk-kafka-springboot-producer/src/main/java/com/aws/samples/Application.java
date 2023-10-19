@@ -21,6 +21,7 @@ import org.springframework.util.concurrent.SuccessCallback;
 import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TimerTask;
 
 /**
@@ -113,8 +114,8 @@ public class Application
     }
 
     private void sendMessageToFallbackTopic(String message, String messageKey) {
-        template2=new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps()));
-        template2.send(fallbackTopic, messageKey, message)
+        Optional.ofNullable(template2).orElse(new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps())))
+        .send(fallbackTopic, messageKey, message)
                 .addCallback(new SuccessCallback<SendResult<String, String>>() {
                                  @Override
                                  public void onSuccess(SendResult<String, String> stringStringSendResult) {
