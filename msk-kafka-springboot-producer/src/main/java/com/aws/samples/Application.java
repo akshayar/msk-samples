@@ -11,23 +11,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
 import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Hello world!
@@ -56,7 +55,7 @@ public class Application
     public static void main(String[] args) throws  Exception{
         SpringApplication.run(Application.class, args);
         //read data from msk-kafka-springboot-producer/src/main/resources/sample.json file and convert to json
-        topicData=FileCopyUtils.copyToString(new FileReader(new File("src/main/resources/sample.json")));
+        topicData=FileCopyUtils.copyToString(new FileReader("src/main/resources/sample.json"));
 
     }
 
@@ -112,9 +111,18 @@ public class Application
                 private int counter=1;
                 @Override
                 public void run() {
-
-                    template.send(topic, topicData.replaceAll("COUNT",""+counter++));
-                    logger.info("Message no {} sent to topic {} ",counter,topic);
+                    String message=topicData.replaceAll("COUNT",""+counter++);
+                    String messageKey=counter+"";
+                    template.send(topic, messageKey,message)
+                            .completable()
+                            .whenComplete((result, error) -> {
+                                if (error == null) {
+                                    logger.info("Message no {} sent to topic {} , partition {} successfully",messageKey,result.getRecordMetadata().topic(),result.getRecordMetadata().partition());
+                                }else {
+                                    logger.info("Failed to send message key :{} , content:{}",messageKey,message);
+                                    logger.info("Error occurred while sending message ",error);
+                                }
+                            });
                 }
             };
             timer.schedule(task, 1000, 1000);
