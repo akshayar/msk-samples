@@ -31,6 +31,8 @@ public class Application
 
     @Value("${spring.kafka.releaseTopic}")
     private String topic;
+    @Value("${spring.kafka.fallbackTopic}")
+    private String fallbackTopic;
     @Value("${spring.kafka.rf}")
     private int replicationFactor;
     @Value("${spring.kafka.partitions}")
@@ -82,19 +84,37 @@ public class Application
                 public void run() {
                     String message=topicData.replaceAll("COUNT",""+counter++);
                     String messageKey=counter+"";
-                    template.send(topic, messageKey,message)
-                            .completable()
-                            .whenComplete((result, error) -> {
-                                if (error == null) {
-                                    logger.info("Message no {} sent to topic {} , partition {} successfully",messageKey,result.getRecordMetadata().topic(),result.getRecordMetadata().partition());
-                                }else {
-                                    logger.info("Failed to send message key :{} , content:{}",messageKey,message);
-                                    logger.info("Error occurred while sending message ",error);
-                                }
-                            });
+                    sendMessageToMain(message, messageKey);
                 }
             };
             timer.schedule(task, 1000, 1000);
         };
+    }
+
+    private void sendMessageToMain(String message, String messageKey) {
+        template.send(topic, messageKey, message)
+                .completable()
+                .whenComplete((result, error) -> {
+                    if (error == null) {
+                        logger.info("Message no {} sent to topic {} , partition {} successfully", messageKey,result.getRecordMetadata().topic(),result.getRecordMetadata().partition());
+                        sendMessageToFallbackTopic(message, messageKey);
+                    }else {
+                        logger.info("Failed to send message key :{} , content:{}", messageKey, message);
+                        logger.info("Error occurred while sending message ",error);
+                    }
+                });
+    }
+
+    private void sendMessageToFallbackTopic(String message, String messageKey) {
+        template.send(fallbackTopic, messageKey, message)
+                .completable()
+                .whenComplete((result, error) -> {
+                    if (error == null) {
+                        logger.info("Message no {} sent to topic {} , partition {} successfully", messageKey,result.getRecordMetadata().topic(),result.getRecordMetadata().partition());
+                    }else {
+                        logger.info("Failed to send message key :{} , content:{}", messageKey, message);
+                        logger.info("Error occurred while sending message ",error);
+                    }
+                });
     }
 }
