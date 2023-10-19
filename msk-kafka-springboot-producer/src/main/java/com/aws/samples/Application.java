@@ -1,7 +1,5 @@
 package com.aws.samples;
 
-import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
@@ -13,20 +11,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
-import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.SendResult;
 import org.springframework.util.FileCopyUtils;
 
-import java.io.File;
 import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimerTask;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Hello world!
@@ -35,6 +27,8 @@ import java.util.concurrent.CompletableFuture;
 @SpringBootApplication
 public class Application
 {
+    private final Logger logger = LoggerFactory.getLogger(Application.class);
+
     @Value("${spring.kafka.releaseTopic}")
     private String topic;
     @Value("${spring.kafka.rf}")
@@ -43,14 +37,11 @@ public class Application
     private int partitionCount;
     @Value("${spring.kafka.minIsr}")
     private String minIsr;
-
     @Autowired
     private Environment env;
     @Autowired
-    private ProducerFactory producerFactory;
-    @Autowired
     KafkaTemplate<String, String> template;
-    private final Logger logger = LoggerFactory.getLogger(Application.class);
+
     private static String topicData;
     public static void main(String[] args) throws  Exception{
         SpringApplication.run(Application.class, args);
@@ -58,33 +49,9 @@ public class Application
         topicData=FileCopyUtils.copyToString(new FileReader("src/main/resources/sample.json"));
 
     }
-
-
-
-    @Bean
-    public NewTopic topic() {
-        return TopicBuilder.name(topic)
-                .partitions(partitionCount)
-                .replicas(replicationFactor)
-                .config("min.insync.replicas", minIsr)
-                .build();
-    }
-
-    @Bean
-    public ProducerFactory<String, String> producerFactory() {
-        return new DefaultKafkaProducerFactory<>(senderProps());
-    }
-
     @Bean
     public KafkaTemplate<String, String> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
-    }
-
-    @Bean
-    public KafkaAdmin kafkaAdmin() {
-        Map<String, Object> configs = new HashMap<>();
-        configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, env.getProperty("spring.kafka.bootstrapAddress"));
-        return new KafkaAdmin(configs);
+        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps()));
     }
 
     private Map<String, Object> senderProps() {
