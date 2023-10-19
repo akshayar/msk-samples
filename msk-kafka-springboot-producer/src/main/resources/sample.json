@@ -1,0 +1,26 @@
+{
+  "id": "COUNT",
+  "type": "donut",
+  "name": "Cake",
+  "ppu": 0.55,
+  "batters":
+  {
+    "batter":
+    [
+      { "id": "COUNT", "type": "Regular" },
+      { "id": "COUNT", "type": "Chocolate" },
+      { "id": "COUNT", "type": "Blueberry" },
+      { "id": "COUNT", "type": "Devil's Food" }
+    ]
+  },
+  "topping":
+  [
+    { "id": "COUNT", "type": "None" },
+    { "id": "COUNT", "type": "Glazed" },
+    { "id": "COUNT", "type": "Sugar" },
+    { "id": "COUNT", "type": "Powdered Sugar" },
+    { "id": "COUNT", "type": "Chocolate with Sprinkles" },
+    { "id": "COUNT", "type": "Chocolate" },
+    { "id": "COUNT", "type": "Maple" }
+  ]
+}
