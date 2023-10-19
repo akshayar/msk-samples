@@ -114,8 +114,10 @@ public class Application
     }
 
     private void sendMessageToFallbackTopic(String message, String messageKey) {
-        Optional.ofNullable(template2).orElse(new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps())))
-        .send(fallbackTopic, messageKey, message)
+        if(template2==null){
+            template2=new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps()));
+        }
+        template2.send(fallbackTopic, messageKey, message)
                 .addCallback(new SuccessCallback<SendResult<String, String>>() {
                                  @Override
                                  public void onSuccess(SendResult<String, String> stringStringSendResult) {
