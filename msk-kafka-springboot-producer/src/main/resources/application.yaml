@@ -1,10 +1,12 @@
+server:
+  port: 8082
 spring:
   kafka:
     acknowledgment: all
     maxBlockTime: 120000
     bufferMemory: 70554432
     sendBufferBytes: 5242880
-    bootstrapAddress: localhost:9092
+    bootstrapAddress: b-3.testcluster.7gmdra.c4.kafka.ap-south-1.amazonaws.com:9092,b-1.testcluster.7gmdra.c4.kafka.ap-south-1.amazonaws.com:9092,b-2.testcluster.7gmdra.c4.kafka.ap-south-1.amazonaws.com:9092
     maxPollInterval: 600000
     maxInFlightReqPerConnInParallel: 5
     maxInFlightReqPerConnInSync: 1
@@ -13,20 +15,8 @@ spring:
     heartBeatsIntervalInMilli: 3000
     sessionTimeOutInMilli: 10000
     autoCommitInterval: 5000
-    groupId: treasuryGroupId
-    kafkaListenerDefaultContainerFactory: kafkaListenerContainerFactory
-    releaseTopic: release
-    rf: 1
-    partitions: 1
-    minIsr: 1
+    releaseTopic: releasex-4
+    rf: 2
+    partitions: 3
+    minIsr: 2
     fallbackTopic : fallback
-    onHoldSettlement:
-      releaseTopic: onHoldSettlementRelease
-    dmsIdDataAggregationForInvoicing:
-      dmsListTopic: dmsListForInvoice
-      autoStartupFlagForDmsIdConsumer: true
-      batchSizeForDmsIdPoll: 5
-      consumerContainerFactoryForDmsIdListener: dmsIdKafkaListenerFactoryBatch
-      dmsAggregatedDataTopic: dailyAggregatedDataForInvoice
-      batchSizeForDmsAggregatedDataPoll: 1000
-      autoStartupFlagForDmsAggregatedDataConsumer: true
