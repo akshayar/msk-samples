@@ -87,7 +87,7 @@ public class Application
                     sendMessageToMain(message, messageKey);
                 }
             };
-            timer.schedule(task, 1000, 1000);
+            timer.schedule(task, Integer.parseInt(env.getProperty("timer.initialDelay")), Integer.parseInt(env.getProperty("timer.interval")));
         };
     }
 
