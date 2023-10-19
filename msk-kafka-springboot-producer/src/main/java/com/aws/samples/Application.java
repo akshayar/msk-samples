@@ -13,7 +13,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.util.concurrent.FailureCallback;
+import org.springframework.util.concurrent.SuccessCallback;
 
 import java.io.FileReader;
 import java.util.HashMap;
@@ -108,14 +111,18 @@ public class Application
 
     private void sendMessageToFallbackTopic(String message, String messageKey) {
         template.send(fallbackTopic, messageKey, message)
-                .completable()
-                .whenComplete((result, error) -> {
-                    if (error == null) {
-                        logger.info("Message no {} sent to topic {} , partition {} successfully", messageKey,result.getRecordMetadata().topic(),result.getRecordMetadata().partition());
-                    }else {
-                        logger.info("Failed to send message key :{} , content:{}", messageKey, message);
-                        logger.info("Error occurred while sending message ",error);
-                    }
-                });
+                .addCallback(new SuccessCallback<SendResult<String, String>>() {
+                                 @Override
+                                 public void onSuccess(SendResult<String, String> stringStringSendResult) {
+                                     logger.info("Message no {} sent to topic {} , partition {} successfully", messageKey,stringStringSendResult.getRecordMetadata().topic(),stringStringSendResult.getRecordMetadata().partition());
+                                 }
+                             },
+                        new FailureCallback() {
+                            @Override
+                            public void onFailure(Throwable throwable) {
+                                logger.info("Failed to send message key :{} , content:{}", messageKey, message);
+                                logger.info("Error occurred while sending message ",throwable);
+                            }
+                        });
     }
 }
