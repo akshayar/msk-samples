@@ -97,10 +97,11 @@ public class Application
                 .whenComplete((result, error) -> {
                     if (error == null) {
                         logger.info("Message no {} sent to topic {} , partition {} successfully", messageKey,result.getRecordMetadata().topic(),result.getRecordMetadata().partition());
-                        sendMessageToFallbackTopic(message, messageKey);
                     }else {
                         logger.info("Failed to send message key :{} , content:{}", messageKey, message);
                         logger.info("Error occurred while sending message ",error);
+                        logger.info("Sending message to fallback topic");
+                        sendMessageToFallbackTopic(message, messageKey);
                     }
                 });
     }
