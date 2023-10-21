@@ -13,7 +13,7 @@ RUN cd /tmp/kafka/mirrormaker2-msk-migration/ \
     && mvn clean install -q -f pom.xml && cp CustomMM2ReplicationPolicy/target/CustomMM2ReplicationPolicy-1.0-SNAPSHOT.jar /tmp/kafka
 RUN cd /tmp/kafka && rm -rf mirrormaker2-msk-migration
 
-RUN mvn org.apache.maven.plugins:maven-dependency-plugin:2.4:get  \
+RUN mvn -q org.apache.maven.plugins:maven-dependency-plugin:2.4:get  \
     -DremoteRepositories=http://download.java.net/maven/2 \
     -Dartifact=software.amazon.msk:aws-msk-iam-auth:1.1.9  \
     -Ddest=/tmp/kafka/aws-msk-iam-auth-1.1.9.jar
