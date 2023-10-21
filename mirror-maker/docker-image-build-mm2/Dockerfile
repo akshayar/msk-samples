@@ -4,18 +4,22 @@ RUN install_packages gettext git maven
 
 RUN mkdir -p /tmp/kafka
 RUN git -C /tmp/kafka clone https://github.com/aws-samples/sasl-scram-secrets-manager-client-for-msk.git
-RUN cd /tmp/kafka/sasl-scram-secrets-manager-client-for-msk/ && mvn clean install -q -f pom.xml && cp target/SaslScramSecretsManagerClient-1.0-SNAPSHOT.jar /tmp/kafka
+RUN cd /tmp/kafka/sasl-scram-secrets-manager-client-for-msk/ && \
+    mvn clean install -q -f pom.xml && cp target/SaslScramSecretsManagerClient-1.0-SNAPSHOT.jar /tmp/kafka
 RUN cd /tmp/kafka && rm -rf sasl-scram-secrets-manager-client-for-msk
  
 RUN git -C /tmp/kafka clone https://github.com/aws-samples/mirrormaker2-msk-migration.git
-RUN cd /tmp/kafka/mirrormaker2-msk-migration/ && mvn clean install -q -f pom.xml && cp CustomMM2ReplicationPolicy/target/CustomMM2ReplicationPolicy-1.0-SNAPSHOT.jar /tmp/kafka 
+RUN cd /tmp/kafka/mirrormaker2-msk-migration/ \
+    && mvn clean install -q -f pom.xml && cp CustomMM2ReplicationPolicy/target/CustomMM2ReplicationPolicy-1.0-SNAPSHOT.jar /tmp/kafka
 RUN cd /tmp/kafka && rm -rf mirrormaker2-msk-migration
-            
-#RUN git -C /tmp/kafka clone https://github.com/aws-samples/amazon-msk-client-authentication.git
-#RUN cd /tmp/kafka/amazon-msk-client-authentication/ && mvn clean package -f pom.xml && cp target/AuthMSK-1.0-SNAPSHOT.jar /tmp/kafka
-#RUN cd /tmp/kafka && rm -rf amazon-msk-client-authentication
 
-            
+RUN mvn org.apache.maven.plugins:maven-dependency-plugin:2.4:get  \
+    -DremoteRepositories=http://download.java.net/maven/2 \
+    -Dartifact=software.amazon.msk:aws-msk-iam-auth:1.1.9  \
+    -Ddest=/tmp/kafka/aws-msk-iam-auth-1.1.9.jar
+
+ADD /tmp/kafka/*.jar /opt/bitnami/kafka/libs
+
 ADD ./connect-distributed.properties /opt/kafka-connect/connect-distributed.properties
 ADD ./runConnect.sh /opt/kafka-connect/runConnect.sh
 RUN chmod +x /opt/kafka-connect/runConnect.sh

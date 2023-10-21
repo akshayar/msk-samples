@@ -1,0 +1,16 @@
+{
+  "name": "mm2-cpc",
+  "connector.class": "org.apache.kafka.connect.mirror.MirrorCheckpointConnector",
+  "clusters": "msksource,mskdest",
+  "source.cluster.alias": "msksource",
+  "target.cluster.alias": "mskdest",
+  "source.cluster.bootstrap.servers": "${MSK_SOURCE_BOOTSTRAP}",
+  "target.cluster.bootstrap.servers": "${MSK_DESTINATION_BOOTSTRAP}",
+  "tasks.max": "1",
+  "key.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
+  "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
+  "replication.policy.class": "com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy",
+  "replication.factor": "3",
+  "checkpoints.topic.replication.factor": "3",
+  "emit.checkpoints.interval.seconds": "20"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "mm2-hbc",
+  "connector.class": "org.apache.kafka.connect.mirror.MirrorHeartbeatConnector",
+  "clusters": "msksource,mskdest",
+  "source.cluster.alias": "msksource",
+  "target.cluster.alias": "mskdest",
+  "source.cluster.bootstrap.servers": "${MSK_SOURCE_BOOTSTRAP}",
+  "target.cluster.bootstrap.servers": "${MSK_DESTINATION_BOOTSTRAP}",
+  "tasks.max": "1",
+  "key.converter": " org.apache.kafka.connect.converters.ByteArrayConverter",
+  "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
+  "replication.factor": "3",
+  "heartbeats.topic.replication.factor": "3",
+  "emit.heartbeats.interval.seconds": "20"
+}
