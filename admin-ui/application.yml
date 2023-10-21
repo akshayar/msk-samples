@@ -1,0 +1,9 @@
+akhq:
+  connections:
+    destination:
+      properties:
+        bootstrap.servers: "b-3.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092,b-1.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092,b-2.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092"
+    source:
+      properties:
+        bootstrap.servers: "b-2.source.yjtfqf.c4.kafka.ap-south-1.amazonaws.com:9092,b-3.source.yjtfqf.c4.kafka.ap-south-1.amazonaws.com:9092,b-1.source.yjtfqf.c4.kafka.ap-south-1.amazonaws.com:9092"
+
