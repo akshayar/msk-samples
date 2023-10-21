@@ -18,7 +18,7 @@ RUN mvn -q org.apache.maven.plugins:maven-dependency-plugin:2.4:get  \
     -Dartifact=software.amazon.msk:aws-msk-iam-auth:1.1.9  \
     -Ddest=/tmp/kafka/aws-msk-iam-auth-1.1.9.jar
 
-ADD /tmp/kafka/*.jar /opt/bitnami/kafka/libs
+RUN cp /tmp/kafka/* /opt/bitnami/kafka/libs && ls /opt/bitnami/kafka/libs
 
 ADD ./connect-distributed.properties /opt/kafka-connect/connect-distributed.properties
 ADD ./runConnect.sh /opt/kafka-connect/runConnect.sh

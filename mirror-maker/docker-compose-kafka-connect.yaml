@@ -1,0 +1,12 @@
+version: '2'
+services:
+  connect:
+    image: kafka-connect
+    ports:
+     - 8083:8083
+    environment:
+     - DESTINATION_BOOTSTRAP_SERVER=b-2.mskopenmon.73ovwf.c4.kafka.ap-south-1.amazonaws.com:9092,b-3.mskopenmon.73ovwf.c4.kafka.ap-south-1.amazonaws.com:9092,b-1.mskopenmon.73ovwf.c4.kafka.ap-south-1.amazonaws.com:9092
+     - GROUP_ID=1
+     - CONFIG_STORAGE_TOPIC=mm2-config
+     - OFFSET_STORAGE_TOPIC=mm2-offset
+     - STATUS_STORAGE_TOPIC=mm2-status
