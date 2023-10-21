@@ -4,12 +4,12 @@ ARTIFACT_BUCKET=$1
 stack_name=$2
 IS_SERVERLESS=$3
 export PeerVPCCidr="172.16.0.0/16"
-export PeerAccountId="229369268201"
+export PeerAccountId="ACCOUNT1"
 export VPCCidr="10.0.0.0/16"
-export PeerVPCId="vpc-0698cb6744a727a84"
-export peeringAcceptorRoleArn="arn:aws:iam::229369268201:role/msk-serverless-cluster-vpcPeeringAcceptorRole-1TV1KR41O92E0"
-export MSKSourceClusterArn="arn:aws:kafka:ap-south-1:229369268201:cluster/MSKSrc-msk-serverless-cluster/55f94cf5-80eb-499e-825c-e777d5f71510-s3"
-export mskActIamRoleArn="arn:aws:iam::229369268201:role/service-role/msk-serverless-cluster-redshiftStrIngestCrossActRo-RZ4CHCMSHVR3"
+export PeerVPCId="vpc-023cf350d1e316b1d"
+export peeringAcceptorRoleArn="arn:aws:iam::ACCOUNT1:role/msk-serverless-vpcPeeringAcceptorRole-1MA9BABFKTHG5"
+export MSKSourceClusterArn="arn:aws:kafka:ap-south-1:ACCOUNT1:cluster/MSKSrc-msk-serverless/3fff2f1d-9d81-4b3b-a0ee-d0d90d5a0b6c-s3"
+export mskActIamRoleArn="arn:aws:iam::ACCOUNT1:policy/msk-serverless-redshiftStreamingManagedPolicy-1D96FIRGGIC7Q"
 
 echo "Artifact bucket is ${ARTIFACT_BUCKET} , Serverless is ${IS_SERVERLESS}"
 echo "VPC is ${VPCCidr} , Peer VPC is ${PeerVPCId} , Peer Account is ${PeerAccountId} , Peer VPC CIDR is ${PeerVPCCidr} , Peering acceptor role is ${peeringAcceptorRoleArn}"

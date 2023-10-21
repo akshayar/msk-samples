@@ -19,7 +19,7 @@ mvn clean package -DskipTests
 aws s3 cp . s3://${ARTIFACT_BUCKET}/ --recursive --exclude "*" --include "*.jar"
 aws s3 cp . s3://${ARTIFACT_BUCKET}/ --recursive --exclude "*" --include "*.yml"
 
-export msk_stack_name="msk-cluster"
+export msk_stack_name="msk-serverless"
 export stack_name="msk-publisher-lambda"
 echo "Deploying Lambda"
 
@@ -28,7 +28,7 @@ then
   export auth_type="NONE"
 else
   export auth_type="IAM"
-  export msk_stack_name="msk-serverless-cluster"
+  export msk_stack_name="msk-serverless"
 fi
 
 aws cloudformation deploy --template-file deploy-msk-publisher-lambda.yml --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \

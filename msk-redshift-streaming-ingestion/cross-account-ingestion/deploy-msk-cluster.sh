@@ -4,7 +4,7 @@ ARTIFACT_BUCKET=$1
 stack_name=$2
 IS_SERVERLESS=$3
 export VPCCidr="172.16.0.0/16"
-export PeerAccountId="967781231549"
+export PeerAccountId="ACCOUNT2"
 export PeerVPCCidr="10.0.0.0/16"
 export MSKSourceKafkaVersion="2.8.1"
 
