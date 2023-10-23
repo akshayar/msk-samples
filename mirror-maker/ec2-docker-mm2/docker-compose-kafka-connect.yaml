@@ -1,11 +1,13 @@
 version: '2'
 services:
   connect:
-    image: kafka-connect
+    image: arawa3/kafka-connect-mm2
     ports:
      - 8083:8083
     environment:
      - DESTINATION_BOOTSTRAP_SERVER=b-2.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092,b-3.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092,b-1.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092
+     #- DESTINATION_BOOTSTRAP_SERVER=ip-10-0-0-21.ap-south-1.compute.internal:9093
+     #- REPLICATION_FACTOR=1
      - GROUP_ID=1
      - CONFIG_STORAGE_TOPIC=mm2-config
      - OFFSET_STORAGE_TOPIC=mm2-offset

@@ -9,7 +9,7 @@
   "tasks.max": "1",
   "key.converter": " org.apache.kafka.connect.converters.ByteArrayConverter",
   "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
-  "replication.factor": "3",
-  "heartbeats.topic.replication.factor": "3",
+  "replication.factor": "${REPLICATION_FACTOR}",
+  "heartbeats.topic.replication.factor": "${REPLICATION_FACTOR}",
   "emit.heartbeats.interval.seconds": "20"
 }

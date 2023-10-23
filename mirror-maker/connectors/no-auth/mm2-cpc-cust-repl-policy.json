@@ -10,7 +10,7 @@
   "key.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
   "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
   "replication.policy.class": "com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy",
-  "replication.factor": "3",
-  "checkpoints.topic.replication.factor": "3",
+  "replication.factor": "${REPLICATION_FACTOR}",
+  "checkpoints.topic.replication.factor": "${REPLICATION_FACTOR}",
   "emit.checkpoints.interval.seconds": "20"
 }

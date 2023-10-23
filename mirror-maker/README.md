@@ -8,10 +8,10 @@ cd ./mirror-maker/docker-image-build-mm2
 # Ex  ./build.sh arawa3/kafka-connect-mm2 true
 ```
 ## Deploy using Docker on EC2 single node
-1. Update `mirror-maker/docker-compose-kafka-connect.yaml`  and update value of DESTINATION_BOOTSTRAP_SERVER. 
+1. Update `mirror-maker/ec2-docker-mm2/docker-compose-kafka-connect.yaml`  and update value of DESTINATION_BOOTSTRAP_SERVER. 
 2. Execute following commands to run the Kafka connect. 
 ```shell
-cd $SOURCE_ROOT/mirror-maker
+cd $SOURCE_ROOT/mirror-maker/ec2-docker-mm2
 docker-compose -f docker-compose-kafka-connect.yaml up 
 ```
 3. Got to `Deploy MM2 connectors` section and execute command to run the 2 connectors required for MM2. 
@@ -36,17 +36,19 @@ curl -s ${MM2Url}/connectors
 #export KAFKA_CONNECT_URL="http://kafka-connect-mm2-2035114508.ap-south-1.elb.amazonaws.com"
 export KAFKA_CONNECT_URL="http://localhost:8083"
 ```
+### Delete Connectors
 ```shell
 curl -X DELETE ${KAFKA_CONNECT_URL}/connectors/mm2-msc  
 curl -X DELETE ${KAFKA_CONNECT_URL}/connectors/mm2-cpc  
 curl -X DELETE ${KAFKA_CONNECT_URL}/connectors/mm2-hbc  
 ```
-## Create Connectors
+### Create Connectors
 ```shell
 cd mirror-maker/connectors/no-auth/
 mkdir .tmp
 export MSK_SOURCE_BOOTSTRAP=
 export MSK_DESTINATION_BOOTSTRAP=
+export REPLICATION_FACTOR=3 ## Use 1 if Kafka cluster is running on single node on docker.  
 
 envsubst < mm2-msc-cust-repl-policy.json > .tmp/mm2-msc-cust-repl-policy.json
 envsubst < mm2-cpc-cust-repl-policy.json > .tmp/mm2-cpc-cust-repl-policy.json
