@@ -1,0 +1,180 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  SourceKafkaClusterBootstrap:
+    Type: String
+    Description: Source cluster bootstrap.
+  DestinationKafkaClusterBootstrap:
+    Type: String
+    Description: Destination cluster bootstrap.
+  ECSClusterArn:
+    Type: String
+    Description: ECS cluster arn
+  ECSServiceRoleArn:
+    Type: String
+    Description: ECS Service role arn
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public subnet 1
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public subnet 2
+  MSKCluster1SG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: MSK Security Group
+  MSKCluster2SG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: MSK Security Group
+  CreateService:
+    Type: String
+    Description: If create service
+    Default: "true"
+Conditions:
+  CreateService:  !Equals [!Ref CreateService, 'true']
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['', [/ecs/, akhq, TaskDefinition]]
+
+  AKHQTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "ecs-tasks.amazonaws.com"
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonMSKFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess
+      Path: /
+  AKHQTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn: LogGroup
+    Properties: 
+      ContainerDefinitions: 
+        - Name: akhq
+          Image: tchiotludo/akhq
+          PortMappings:
+            - ContainerPort: 8080
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: akhq
+          # https://github.com/tchiotludo/akhq#kafka-cluster-configuration
+          Environment:
+            - Name: AKHQ_CONFIGURATION
+              Value: !Sub |
+                akhq:
+                  connections:
+                    source:
+                      properties:
+                        bootstrap.servers: "${SourceKafkaClusterBootstrap}"
+                    destination:
+                      properties:
+                        bootstrap.servers: "${DestinationKafkaClusterBootstrap}"
+      Cpu: 512
+      Memory: 1024
+      NetworkMode: awsvpc
+      RequiresCompatibilities: 
+        - FARGATE
+      ExecutionRoleArn: !GetAtt AKHQTaskRole.Arn
+  AKHQService:
+    Type: AWS::ECS::Service
+    DependsOn:  AKHQALBListener
+    Condition: CreateService
+    Properties:
+      Cluster: !Ref ECSClusterArn
+      DesiredCount: 1
+      LoadBalancers:
+        - ContainerName: "akhq"
+          ContainerPort: 8080
+          TargetGroupArn: !Ref AKHQALBTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+          SecurityGroups:
+            - !Ref AKHQECSSecurityGroup
+            - !Ref MSKCluster1SG
+            - !Ref MSKCluster2SG
+          AssignPublicIp: ENABLED
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      TaskDefinition: !Ref AKHQTaskDefinition
+      ServiceName: "akhq"
+      LaunchType: FARGATE
+  AKHQALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ELB Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  AKHQECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EC2 Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId:
+            Fn::GetAtt:
+              - AKHQALBSecurityGroup
+              - GroupId
+  AKHQALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 15
+      HealthyThresholdCount: 5
+      HealthCheckPath: /ui
+      Matcher:
+        HttpCode: '200'
+      Port: 8080
+      Protocol: HTTP
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref VPC
+      TargetType: ip
+  AKHQALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: AKHQALB
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AKHQALBTargetGroup
+      LoadBalancerArn: !Ref AKHQALB
+      Port: 80
+      Protocol: HTTP
+  AKHQALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: akhq
+      SecurityGroups:
+        - !GetAtt AKHQALBSecurityGroup.GroupId
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+
+Outputs:
+  AKHQUrl:
+    Description: AKHQ URL
+    Value: !GetAtt AKHQALB.DNSName
