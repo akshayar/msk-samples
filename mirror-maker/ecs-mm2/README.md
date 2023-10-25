@@ -1,1 +1,1 @@
-akhq:  connections:    msk-cluster-source:      properties:        bootstrap.servers: "b-1.source.yjtfqf.c4.kafka.ap-south-1.amazonaws.com:9092,b-2.source.yjtfqf.c4.kafka.ap-south-1.amazonaws.com:9092,b-3.source.yjtfqf.c4.kafka.ap-south-1.amazonaws.com:9092"    msk-cluster:      properties:        bootstrap.servers: "b-1.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092,b-2.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092,b-3.target.oumzco.c4.kafka.ap-south-1.amazonaws.com:9092"
+
