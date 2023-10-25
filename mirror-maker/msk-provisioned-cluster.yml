@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: The template deploys VPC and  MSK cluster
+Parameters:
+  MSKSourceKafkaVersion:
+    Type: String
+    Default: 2.8.1
+    Description: The Apache Kafka version for the source Amazon MSK cluster.
+    AllowedValues:
+      - 2.6.1
+      - 2.7.1
+      - 2.7.2
+      - 2.8.0
+      - 2.8.1
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+  Subnet1:
+    Type: AWS::EC2::Subnet::Id
+  Subnet2:
+    Type: AWS::EC2::Subnet::Id
+  Subnet3:
+    Type: AWS::EC2::Subnet::Id
+  InstanceType:
+    Type: String
+    AllowedValues:
+      - kafka.m5.large
+      - kafka.m5.xlarge
+  MSKPublisherSG:
+    Type: String
+Resources:
+  MSKCluster:
+    Type: AWS::MSK::Cluster
+    Description: MSK Source Cluster
+    Properties:
+      BrokerNodeGroupInfo:
+        ClientSubnets:
+          - !Ref Subnet1
+          - !Ref Subnet2
+          - !Ref Subnet3
+        InstanceType: !Ref InstanceType
+        SecurityGroups: [!GetAtt MSKSecurityGroup.GroupId]
+        StorageInfo:
+          EBSStorageInfo:
+            VolumeSize: 100
+      ClusterName: !Join
+        - '-'
+        - - 'MSKSrc'
+          - !Ref 'AWS::StackName'
+      EncryptionInfo:
+        EncryptionInTransit:
+          ClientBroker: TLS_PLAINTEXT
+          InCluster: true
+      EnhancedMonitoring: DEFAULT
+      KafkaVersion: !Ref MSKSourceKafkaVersion
+      NumberOfBrokerNodes: 3
+      ClientAuthentication:
+        Sasl:
+          Iam:
+            Enabled: True
+        Unauthenticated:
+          Enabled: True
+  MSKSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Description: MSK Security Group
+    Properties:
+      GroupDescription: MSK Security Group
+      GroupName: !Sub "${AWS::StackName}-msk-sg"
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2181
+          ToPort: 2181
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 9094
+          ToPort: 9094
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 9098
+          ToPort: 9098
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 9092
+          ToPort: 9092
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+
+Outputs:
+  MSKClusterArn:
+    Description: The Arn for the Source MSK cluster
+    Value: !Ref MSKCluster
+    Export:
+      Name: !Sub "${AWS::StackName}-MSKClusterArn"
+  MSKClusterSG:
+    Description: The SG for the Source MSK cluster
+    Value: !Ref MSKSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-MSKSecurityGroup"

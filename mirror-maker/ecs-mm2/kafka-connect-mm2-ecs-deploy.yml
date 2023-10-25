@@ -64,6 +64,7 @@ Resources:
           Image: arawa3/kafka-connect-mm2
           PortMappings:
             - ContainerPort: 8083
+            - ContainerPort: 9901
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -81,6 +82,8 @@ Resources:
               Value: mm2-offset-2
             - Name: STATUS_STORAGE_TOPIC
               Value: mm2-status-2
+          DockerLabels:
+            PROMETHEUS_EXPORTER_PORT: 9901
       Cpu: 2048
       Memory: 4096
       NetworkMode: awsvpc
