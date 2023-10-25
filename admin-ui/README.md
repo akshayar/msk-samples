@@ -9,13 +9,16 @@ docker run     -p 8080:8080 \
   tchiotludo/akhq   
 ```
 ## Deploy AKHQ on ECS
-1. The deployment assumes that both source and destination clusters are on AWS. They can either be MSK or self-hosted EC2. 
+### Pre-requisite
+1. Create an ECS cluster with Fargate as the "Infrastructure" option. 
+### Deployment Steps
+1. The deployment assumes that you have two clusters to administer, both allow plaintext auth. Both source and destination clusters are on AWS. They can either be MSK or self-hosted EC2.
 2. The ECS task will have 3 SGs assigned - cluster SGs and an SG that gets created by the CFT. 
 3. Clusters SGs have self referencing rules on required port. 
-4. Update parameters in `admin-ui/deploy.sh`.
-5. Run following comand to deploy AKHQ using ECS service  -
+4. Update parameters in `admin-ui/deploy.sh`. If you have just one cluster to monitor make SOURCE_KAFKA_CLUSTER_BOOTSTRAP and DESTINATION_KAFKA_CLUSTER_BOOTSTRAP same. 
+5. Run following command to deploy AKHQ using ECS service  -
 ```shell
 cd $SOURCE_ROOT/admin-ui
 ./deploy.sh 
 ```
-6. Once deployed, refer the output of the stack and follow AKHQUrl to access the UI. 
+6. Once deployed, refer the output of the stack `akhq-ecs-deploy` and follow AKHQUrl to access the UI. 

@@ -41,15 +41,18 @@ Resources:
         StorageInfo:
           EBSStorageInfo:
             VolumeSize: 100
-      ClusterName: !Join
-        - '-'
-        - - 'MSKSrc'
-          - !Ref 'AWS::StackName'
+      ClusterName: !Ref 'AWS::StackName'
       EncryptionInfo:
         EncryptionInTransit:
           ClientBroker: TLS_PLAINTEXT
           InCluster: true
       EnhancedMonitoring: DEFAULT
+      OpenMonitoring:
+        Prometheus:
+          JmxExporter:
+            EnabledInBroker: true
+          NodeExporter:
+            EnabledInBroker: true
       KafkaVersion: !Ref MSKSourceKafkaVersion
       NumberOfBrokerNodes: 3
       ClientAuthentication:
@@ -82,7 +85,28 @@ Resources:
           FromPort: 9092
           ToPort: 9092
           SourceSecurityGroupId: !Ref MSKPublisherSG
-
+        - IpProtocol: tcp
+          FromPort: 11001
+          ToPort: 11001
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+        - IpProtocol: tcp
+          FromPort: 11002
+          ToPort: 11002
+          SourceSecurityGroupId: !Ref MSKPublisherSG
+  MSKSecurityGroupSelfReferencing:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      FromPort: -1
+      ToPort: -1
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - MSKSecurityGroup
+          - GroupId
+      GroupId:
+        Fn::GetAtt:
+          - MSKSecurityGroup
+          - GroupId
 Outputs:
   MSKClusterArn:
     Description: The Arn for the Source MSK cluster

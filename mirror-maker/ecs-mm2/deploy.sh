@@ -9,6 +9,8 @@ export MSKCluster2SG=sg-09642b7a0ad7e5bf9
 export ECS_ALB_VPC=vpc-01be4940d7ee23da5
 export ECS_ALB_PublicSubnet1=subnet-0d85538e799c33c9c
 export ECS_ALB_PublicSubnet2=subnet-03dfb01c582465083
+## Uncomment and change the image name if you built an image.
+#export KafkaConnectImage=arawa3/kafka-connect-mm2
 
 
 echo "Fetching ECS cluster ARN"

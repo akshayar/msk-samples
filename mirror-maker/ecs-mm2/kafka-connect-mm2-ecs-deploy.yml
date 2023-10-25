@@ -31,6 +31,10 @@ Parameters:
     Type: String
     Description: If create service
     Default: "true"
+  KafkaConnectImage:
+    Type: String
+    Description: Change this parameters if you build an image and want to use that.
+    Default: "arawa3/kafka-connect-mm2"
 Conditions:
   CreateService:  !Equals [!Ref CreateService, 'true']
 Resources:
