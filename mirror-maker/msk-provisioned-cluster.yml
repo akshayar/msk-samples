@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: The template deploys VPC and  MSK cluster
 Parameters:
-  MSKSourceKafkaVersion:
+  MSKKafkaVersion:
     Type: String
     Default: 2.8.1
     Description: The Apache Kafka version for the source Amazon MSK cluster.
@@ -11,6 +11,8 @@ Parameters:
       - 2.7.2
       - 2.8.0
       - 2.8.1
+      - 2.8.2.tiered
+      - 2.2.1
   VPCId:
     Type: AWS::EC2::VPC::Id
   Subnet1:
@@ -53,7 +55,7 @@ Resources:
             EnabledInBroker: true
           NodeExporter:
             EnabledInBroker: true
-      KafkaVersion: !Ref MSKSourceKafkaVersion
+      KafkaVersion: !Ref MSKKafkaVersion
       NumberOfBrokerNodes: 3
       ClientAuthentication:
         Sasl:
@@ -109,12 +111,12 @@ Resources:
           - GroupId
 Outputs:
   MSKClusterArn:
-    Description: The Arn for the Source MSK cluster
+    Description: MSK Arn
     Value: !Ref MSKCluster
     Export:
       Name: !Sub "${AWS::StackName}-MSKClusterArn"
   MSKClusterSG:
-    Description: The SG for the Source MSK cluster
+    Description: MSK Cluster SG
     Value: !Ref MSKSecurityGroup
     Export:
       Name: !Sub "${AWS::StackName}-MSKSecurityGroup"

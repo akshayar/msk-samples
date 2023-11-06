@@ -9,8 +9,12 @@
   "tasks.max": "1",
   "key.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
   "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
-  "replication.policy.class": "com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy",
+  "replication.policy.class": "org.apache.kafka.connect.mirror.IdentityReplicationPolicy",
   "replication.factor": "${REPLICATION_FACTOR}",
   "checkpoints.topic.replication.factor": "${REPLICATION_FACTOR}",
-  "emit.checkpoints.interval.seconds": "20"
+  "emit.checkpoints.interval.seconds": "20",
+  "groups": ".*",
+  "sync.group.offsets.enabled": "true",
+  "sync.group.offsets.interval.seconds" : "20",
+  "refresh.groups.interval.seconds" : "20"
 }

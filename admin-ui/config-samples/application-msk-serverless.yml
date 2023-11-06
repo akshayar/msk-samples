@@ -1,0 +1,12 @@
+akhq:
+  connections:
+    destination:
+      properties:
+        bootstrap.servers: "boot-jdnpguco.c3.kafka-serverless.ap-south-1.amazonaws.com:9098"
+        security.protocol: SASL_SSL
+        sasl.mechanism: AWS_MSK_IAM
+        sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true;
+        sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        ssl.truststore.location: ${JAVA_HOME}/lib/security/cacerts
+        ssl.truststore.password: changeit
+

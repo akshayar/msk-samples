@@ -31,6 +31,9 @@ Parameters:
     Type: String
     Description: If create service
     Default: "true"
+  DesiredCount:
+    Type: String
+    Default: 1
 Conditions:
   CreateService:  !Equals [!Ref CreateService, 'true']
 Resources:
@@ -94,7 +97,7 @@ Resources:
     Condition: CreateService
     Properties:
       Cluster: !Ref ECSClusterArn
-      DesiredCount: 1
+      DesiredCount: !Ref DesiredCount
       LoadBalancers:
         - ContainerName: "akhq"
           ContainerPort: 8080

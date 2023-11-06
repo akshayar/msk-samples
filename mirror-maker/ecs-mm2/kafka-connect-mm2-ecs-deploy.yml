@@ -35,6 +35,9 @@ Parameters:
     Type: String
     Description: Change this parameters if you build an image and want to use that.
     Default: "arawa3/kafka-connect-mm2"
+  DesiredCount:
+    Type: String
+    Default: 1
 Conditions:
   CreateService:  !Equals [!Ref CreateService, 'true']
 Resources:
@@ -100,7 +103,7 @@ Resources:
     Condition: CreateService
     Properties:
       Cluster: !Ref ECSClusterArn
-      DesiredCount: 1
+      DesiredCount: !Ref DesiredCount
       LoadBalancers:
         - ContainerName: "kafka-connect-mm2"
           ContainerPort: 8083

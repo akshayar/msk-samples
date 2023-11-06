@@ -10,13 +10,12 @@
   "tasks.max": "4",
   "key.converter": " org.apache.kafka.connect.converters.ByteArrayConverter",
   "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
-  "replication.policy.class": "com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy",
+  "replication.policy.class": "org.apache.kafka.connect.mirror.IdentityReplicationPolicy",
   "replication.factor": "${REPLICATION_FACTOR}",
   "offset-syncs.topic.replication.factor": "${REPLICATION_FACTOR}",
   "sync.topic.acls.interval.seconds": "20",
   "sync.topic.configs.interval.seconds": "20",
   "refresh.topics.interval.seconds": "20",
-  "refresh.groups.interval.seconds": "20",
   "consumer.group.id": "mm2-msc-cons",
   "producer.enable.idempotence":"true"
 }
