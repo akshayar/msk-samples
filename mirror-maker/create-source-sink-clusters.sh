@@ -22,6 +22,7 @@ function getClusterInformation() {
 function create_cluster() {
   stack_name=$1
   cluster_version=$2
+  instance_type=$3
   echo "Deploying MSK Cluster ${stack_name} with version ${cluster_version}"
   aws cloudformation deploy --template-file msk-provisioned-cluster.yml \
      --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
@@ -32,17 +33,20 @@ function create_cluster() {
      Subnet1=${Subnet1} \
      Subnet2=${Subnet2} \
      Subnet3=${Subnet3} \
-     InstanceType=${InstanceType} \
-     MSKPublisherSG=${MSKPublisherSG}
+     InstanceType=${instance_type} \
+     MSKPublisherSG=${MSKPublisherSG} \
+     VolumeSizeGB=${VolumeSizeGB}
 }
 export REGION=ap-south-1
-export MSKSourceKafkaVersion=2.2.1
-export MSKTargetKafkaVersion=2.8.2.tiered
-export VPCId=vpc-01111111
-export Subnet1=subnet-03111111
-export Subnet2=subnet-0d222222
-export Subnet3=subnet-06333333
-export InstanceType=kafka.m5.large
+export MSKSourceKafkaVersion=3.3.2
+export MSKTargetKafkaVersion=3.3.2
+export VPCId=vpc-01be4940d7ee23da5
+export Subnet1=subnet-03dfb01c582465083
+export Subnet2=subnet-0d85538e799c33c9c
+export Subnet3=subnet-069dc87ebf9750664
+export SourceInstanceType=kafka.m5.xlarge
+export TargetInstanceType=kafka.m7g.xlarge
+export VolumeSizeGB=512
 echo "Creating MSK client SG"
 aws ec2 create-security-group \
         --vpc-id ${VPCId} --region ${REGION} \
@@ -54,15 +58,16 @@ export MSKPublisherSG=$(aws ec2 describe-security-groups --region ${REGION}\
         --output text)
 
 echo "MSK Publisher SG created with ID: ${MSKPublisherSG}"
-
-create_cluster msk-source-cluster ${MSKSourceKafkaVersion} &
-create_cluster msk-destination-cluster ${MSKTargetKafkaVersion}
+SOURCE_CLUSTER_STACK_NAME=msk-source-cluster
+TARGET_CLUSTER_STACK_NAME=msk-destination-cluster
+create_cluster ${SOURCE_CLUSTER_STACK_NAME} ${MSKSourceKafkaVersion} ${SourceInstanceType} &
+create_cluster ${TARGET_CLUSTER_STACK_NAME} ${MSKTargetKafkaVersion} ${TargetInstanceType}
 
 ## Check for cloudformation stack status and wait
 #aws cloudformation wait stack-create-complete --stack-name msk-source-cluster --region ${REGION} --output text --no-cli-pager
 #aws cloudformation wait stack-create-complete --stack-name msk-destination-cluster --region ${REGION} --output text --no-cli-pager
 
 ## Query cloudformation stack output using cli
-getClusterInformation msk-source-cluster
-getClusterInformation msk-destination-cluster
+getClusterInformation ${SOURCE_CLUSTER_STACK_NAME}
+getClusterInformation ${TARGET_CLUSTER_STACK_NAME}
 
