@@ -24,6 +24,9 @@ docker-compose -f docker-compose-kafka-connect.yaml up
 2. The ECS task will have 3 SGs assigned - cluster SGs and an SG that gets created by the CFT.
 3. Clusters SGs have self referencing rules on required port.
 4. Create ECS cluster using https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_AWSCLI_Fargate.html. 
+```shell
+aws ecs create-cluster --cluster-name mm2-fargate-cluster
+```
 5. Update parameters in `mirror-maker/ecs-mm2/deploy.sh`.
 6. Run following command to deploy the Kafka connect using ECS services -
 ```shell
