@@ -177,6 +177,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: kafka-connect-mm2
+      Scheme: internal
       SecurityGroups:
         - !GetAtt MM2ALBSecurityGroup.GroupId
       Subnets:
