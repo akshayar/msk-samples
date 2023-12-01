@@ -1,0 +1,126 @@
+Parameters:
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+  SubnetAId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet A of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+  SubnetBId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet B of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+    Default: ""
+  SubnetCId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet C of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+    Default: ""
+  DestinationClusterBootstrap:
+    Type: String
+    Description: Bootstrap Server detail of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+  SourceClusterBootstrap:
+    Type: String
+    Description: Bootstrap Server detail of Source Kafka Cluster from where MSK Connect will pull the stream data from
+  SourceTopic:
+    Type: String
+    Description: SourceTopic which needs to be replication
+    Default: .*
+  MM2CustomPluginArn:
+    Type: String
+    Description: ARN of the custom plugin
+Resources:
+  MSKConnectConnectorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join [ '', [ '/', { Ref: 'AWS::StackName' }, '/log' ] ]
+      RetentionInDays: 14
+  MSKConnectConnector:
+    Type: AWS::KafkaConnect::Connector
+    Properties:
+      Capacity:
+        AutoScaling:
+          MaxWorkerCount: 4
+          McuCount: 1
+          MinWorkerCount: 2
+          ScaleInPolicy:
+            CpuUtilizationPercentage: 20
+          ScaleOutPolicy:
+            CpuUtilizationPercentage: 80
+      ConnectorConfiguration:
+        connector.class: org.apache.kafka.connect.mirror.MirrorSourceConnector
+        clusters: msksource,mskdest
+        source.cluster.alias: msksource
+        target.cluster.alias: mskdest
+        source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
+        target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
+        topics: !Ref SourceTopic
+        tasks.max: !Ref TasksMax
+        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        replication.factor: 3
+        offset-syncs.topic.replication.factor: 3
+        sync.topic.acls.interval.seconds: 20
+        sync.topic.configs.interval.seconds: 20
+        refresh.topics.interval.seconds: 20
+        refresh.groups.interval.seconds: 20
+        consumer.group.id: mm2-msc-cons
+        producer.enable.idempotence: true
+        target.cluster.security.protocol: PLAINTEXT
+        replication.policy.class: com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy
+        transforms: renameTopic
+        transforms.renameTopic.type: org.apache.kafka.connect.transforms.RegexRouter
+        transforms.renameTopic.replacement: $1
+        transforms.renameTopic.regex: primary.(.*)
+      ConnectorDescription: Mirror Maker 2 Connector
+      ConnectorName: MM2ConnectorTest1
+      KafkaCluster:
+        ApacheKafkaCluster:
+          BootstrapServers: !Ref DestinationClusterBootstrap
+          Vpc:
+            SecurityGroups:
+              - !Ref MSKConnectSecurityGroup
+            Subnets:
+              - !Ref SubnetAId
+              - !Ref SubnetBId
+      KafkaClusterClientAuthentication:
+        AuthenticationType: NONE
+      KafkaClusterEncryptionInTransit:
+        EncryptionType: PLAINTEXT
+      KafkaConnectVersion: 2.7.1
+      LogDelivery:
+        WorkerLogDelivery:
+          CloudWatchLogs:
+            Enabled: true
+            LogGroup: !Ref MSKConnectConnectorLogGroup
+      Plugins:
+        - CustomPlugin:
+            CustomPluginArn: !Ref MM2CustomPluginArn
+            Revision: 1
+      ServiceExecutionRoleArn: !GetAtt MSKConnectRole.Arn
+  MSKConnectRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kafkaconnect.amazonaws.com
+            Action: sts:AssumeRole
+      RoleName: MSKConnectRoleCFT
+  MSKConnectPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: MSKConnectPolicyCFT
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'kafkaconnect:*'
+              - 's3:*'
+              - 'iam:PassRole'
+              - 'kafka:*'
+              - 'logs:*'
+              - 'ec2:*'
+            Resource: '*'
+      Roles:
+        - Ref: MSKConnectRole
