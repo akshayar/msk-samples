@@ -1,0 +1,61 @@
+{
+  "connectorName": "MirrorHeartbeatConnector",
+  "connectorConfiguration": {
+    "connector.class": "org.apache.kafka.connect.mirror.MirrorHeartbeatConnector",
+    "clusters": "",
+    "source.cluster.alias": "",
+    "target.cluster.alias": "",
+    "replication.policy.separator": "",
+    "source.cluster.bootstrap.servers": "${SOURCE_KAFKA_CLUSTER_BOOTSTRAP}",
+    "target.cluster.bootstrap.servers": "${DESTINATION_KAFKA_CLUSTER_BOOTSTRAP}",
+    "tasks.max": "1",
+    "key.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
+    "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter",
+    "replication.factor": "3",
+    "heartbeats.topic.replication.factor": "3",
+    "emit.heartbeats.interval.seconds": "20",
+    "consumer.group.id": "MirrorHeartbeatConnector"
+  },
+  "serviceExecutionRoleArn": "${MSK_CONNECT_ROLE_ARN}",
+  "kafkaConnectVersion": "2.7.1",
+  "kafkaClusterEncryptionInTransit": {"encryptionType": "PLAINTEXT"},
+  "kafkaClusterClientAuthentication": {"authenticationType": "NONE"},
+  "capacity": {
+    "provisionedCapacity": {
+      "mcuCount": 1,
+      "workerCount": 1
+    }
+  },
+  "logDelivery": {
+    "workerLogDelivery": {
+      "cloudWatchLogs": {
+        "enabled": true,
+        "logGroup": "${LOG_GROUP_NAME}"
+      }
+    }
+  },
+  "plugins": [
+    {
+      "customPlugin": {
+        "customPluginArn": "${MM2_CUSTOM_PLUGIN_ARN}",
+        "revision": 1
+      }
+    }
+  ],
+  "kafkaCluster": {
+    "apacheKafkaCluster": {
+      "bootstrapServers": "${DESTINATION_KAFKA_CLUSTER_BOOTSTRAP}",
+      "vpc": {
+        "subnets": [
+          "${SUBNET_1}",
+          "${SUBNET_2}"
+        ],
+        "securityGroups": ["${SOURCE_CLUSTER_SG}","${DESTINATION_CLUSTER_SG}"]
+      }
+    }
+  },
+  "workerConfiguration": {
+    "workerConfigurationArn": "${MM2_WORKER_CONFIG_ARN}",
+    "revision": 1
+  }
+}

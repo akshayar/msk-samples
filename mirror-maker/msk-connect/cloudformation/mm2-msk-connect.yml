@@ -1,0 +1,223 @@
+Parameters:
+  SubnetAId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet A of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+  SubnetBId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet B of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+    Default: ""
+  DestinationClusterBootstrap:
+    Type: String
+    Description: Bootstrap Server detail of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+  DestinationClusterSG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: MSK Security Group
+  SourceClusterBootstrap:
+    Type: String
+    Description: Bootstrap Server detail of Source Kafka Cluster from where MSK Connect will pull the stream data from
+  SourceClusterSG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: MSK Security Group
+  SourceTopic:
+    Type: String
+    Description: SourceTopic which needs to be replication
+    Default: .*
+  MM2CustomPluginArn:
+    Type: String
+    Description: ARN of the custom plugin
+  TasksMax:
+    Type: String
+    Description: Task Max
+  MSKConnectConnectorLogGroup:
+    Type: String
+    Default: /aws/msk-connect-mm2
+Resources:
+  MirrorSourceConnector:
+    Type: AWS::KafkaConnect::Connector
+    Properties:
+      ConnectorDescription: MirrorSourceConnector
+      ConnectorName: MirrorSourceConnector
+      KafkaCluster:
+        ApacheKafkaCluster:
+          BootstrapServers: !Ref DestinationClusterBootstrap
+          Vpc:
+            SecurityGroups:
+              - !Ref DestinationClusterSG
+              - !Ref SourceClusterSG
+            Subnets:
+              - !Ref SubnetAId
+              - !Ref SubnetBId
+      KafkaClusterClientAuthentication:
+        AuthenticationType: NONE
+      KafkaClusterEncryptionInTransit:
+        EncryptionType: PLAINTEXT
+      KafkaConnectVersion: 2.7.1
+      LogDelivery:
+        WorkerLogDelivery:
+          CloudWatchLogs:
+            Enabled: true
+            LogGroup: !Ref MSKConnectConnectorLogGroup
+      Plugins:
+        - CustomPlugin:
+            CustomPluginArn: !Ref MM2CustomPluginArn
+            Revision: 1
+      ServiceExecutionRoleArn: !GetAtt MSKConnectRole.Arn
+      Capacity:
+        AutoScaling:
+          MaxWorkerCount: !Ref TasksMax
+          McuCount: 1
+          MinWorkerCount: 1
+          ScaleInPolicy:
+            CpuUtilizationPercentage: 20
+          ScaleOutPolicy:
+            CpuUtilizationPercentage: 80
+      ConnectorConfiguration:
+        connector.class: org.apache.kafka.connect.mirror.MirrorSourceConnector
+        clusters:
+        source.cluster.alias:
+        target.cluster.alias:
+        replication.policy.separator:
+        source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
+        target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
+        topics: !Ref SourceTopic
+        tasks.max: !Ref TasksMax
+        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        replication.factor: 3
+        offset-syncs.topic.replication.factor: 3
+        sync.topic.acls.interval.seconds: 20
+        sync.topic.configs.interval.seconds: 20
+        refresh.topics.interval.seconds: 20
+        consumer.group.id: MirrorSourceConnector
+        producer.enable.idempotence: true
+        replication.policy.class: com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy
+  MSKConnectMirrorCheckpointConnector:
+    Type: AWS::KafkaConnect::Connector
+    Properties:
+      ConnectorDescription: MirrorCheckpointConnector
+      ConnectorName: MirrorCheckpointConnector
+      KafkaCluster:
+        ApacheKafkaCluster:
+          BootstrapServers: !Ref DestinationClusterBootstrap
+          Vpc:
+            SecurityGroups:
+              - !Ref DestinationClusterSG
+              - !Ref SourceClusterSG
+            Subnets:
+              - !Ref SubnetAId
+              - !Ref SubnetBId
+      KafkaClusterClientAuthentication:
+        AuthenticationType: NONE
+      KafkaClusterEncryptionInTransit:
+        EncryptionType: PLAINTEXT
+      KafkaConnectVersion: 2.7.1
+      LogDelivery:
+        WorkerLogDelivery:
+          CloudWatchLogs:
+            Enabled: true
+            LogGroup: !Ref MSKConnectConnectorLogGroup
+      Plugins:
+        - CustomPlugin:
+            CustomPluginArn: !Ref MM2CustomPluginArn
+            Revision: 1
+      ServiceExecutionRoleArn: !GetAtt MSKConnectRole.Arn
+      Capacity:
+        ProvisionedCapacity:
+          McuCount: 1
+          WorkerCount: 1
+      ConnectorConfiguration:
+        connector.class: org.apache.kafka.connect.mirror.MirrorCheckpointConnector
+        clusters:
+        source.cluster.alias:
+        target.cluster.alias:
+        replication.policy.separator:
+        source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
+        target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
+        tasks.max: 1
+        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        replication.factor: 3
+        checkpoints.topic.replication.factor: 3
+        emit.checkpoints.interval.seconds: 20
+        groups: .*
+        sync.group.offsets.enabled: true
+        sync.group.offsets.interval.seconds: 20
+        refresh.groups.interval.seconds: 20
+        consumer.group.id: MirrorCheckpointConnector
+  MirrorHeartbeatConnectorConnector:
+    Type: AWS::KafkaConnect::Connector
+    Properties:
+      ConnectorDescription: MirrorHeartbeatConnector
+      ConnectorName: MirrorHeartbeatConnector
+      KafkaCluster:
+        ApacheKafkaCluster:
+          BootstrapServers: !Ref DestinationClusterBootstrap
+          Vpc:
+            SecurityGroups:
+              - !Ref DestinationClusterSG
+              - !Ref SourceClusterSG
+            Subnets:
+              - !Ref SubnetAId
+              - !Ref SubnetBId
+      KafkaClusterClientAuthentication:
+        AuthenticationType: NONE
+      KafkaClusterEncryptionInTransit:
+        EncryptionType: PLAINTEXT
+      KafkaConnectVersion: 2.7.1
+      LogDelivery:
+        WorkerLogDelivery:
+          CloudWatchLogs:
+            Enabled: true
+            LogGroup: !Ref MSKConnectConnectorLogGroup
+      Plugins:
+        - CustomPlugin:
+            CustomPluginArn: !Ref MM2CustomPluginArn
+            Revision: 1
+      ServiceExecutionRoleArn: !GetAtt MSKConnectRole.Arn
+      Capacity:
+        ProvisionedCapacity:
+          McuCount: 1
+          WorkerCount: 1
+      ConnectorConfiguration:
+        connector.class: org.apache.kafka.connect.mirror.MirrorHeartbeatConnector
+        clusters:
+        source.cluster.alias:
+        target.cluster.alias:
+        replication.policy.separator:
+        source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
+        target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
+        tasks.max: 1
+        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        replication.factor: 3
+        heartbeats.topic.replication.factor: 3
+        emit.heartbeats.interval.seconds: 20
+        consumer.group.id: MirrorHeartbeatConnector
+  MSKConnectRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kafkaconnect.amazonaws.com
+            Action: sts:AssumeRole
+  MSKConnectPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: MSKConnectPolicyCFT
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'kafkaconnect:*'
+              - 's3:*'
+              - 'iam:PassRole'
+              - 'kafka:*'
+              - 'logs:*'
+              - 'ec2:*'
+            Resource: '*'
+      Roles:
+        - Ref: MSKConnectRole

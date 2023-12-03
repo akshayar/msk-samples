@@ -5,14 +5,6 @@ Parameters:
     Type: String
     Default: 2.8.1
     Description: The Apache Kafka version for the source Amazon MSK cluster.
-    AllowedValues:
-      - 2.6.1
-      - 2.7.1
-      - 2.7.2
-      - 2.8.0
-      - 2.8.1
-      - 2.8.2.tiered
-      - 2.2.1
   VPCId:
     Type: AWS::EC2::VPC::Id
   Subnet1:
@@ -23,11 +15,16 @@ Parameters:
     Type: AWS::EC2::Subnet::Id
   InstanceType:
     Type: String
-    AllowedValues:
-      - kafka.m5.large
-      - kafka.m5.xlarge
   MSKPublisherSG:
     Type: String
+  VolumeSizeGB:
+    Type: String
+    Default: 100
+
+Conditions:
+  CreateTieredStorage: !Equals
+    - !Ref MSKKafkaVersion
+    - 3.6.0
 Resources:
   MSKCluster:
     Type: AWS::MSK::Cluster
@@ -42,13 +39,13 @@ Resources:
         SecurityGroups: [!GetAtt MSKSecurityGroup.GroupId]
         StorageInfo:
           EBSStorageInfo:
-            VolumeSize: 100
+            VolumeSize: !Ref VolumeSizeGB
       ClusterName: !Ref 'AWS::StackName'
       EncryptionInfo:
         EncryptionInTransit:
           ClientBroker: TLS_PLAINTEXT
           InCluster: true
-      EnhancedMonitoring: DEFAULT
+      EnhancedMonitoring: PER_BROKER
       OpenMonitoring:
         Prometheus:
           JmxExporter:
@@ -63,6 +60,8 @@ Resources:
             Enabled: True
         Unauthenticated:
           Enabled: True
+      StorageMode: !If [CreateTieredStorage, TIERED, LOCAL]
+
   MSKSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Description: MSK Security Group
