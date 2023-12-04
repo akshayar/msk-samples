@@ -1,5 +1,5 @@
 {
-  "connectorName": "MirrorCheckpointConnector",
+  "connectorName": "mm2-MirrorCheckpointConnector",
   "connectorConfiguration": {
     "connector.class": "org.apache.kafka.connect.mirror.MirrorCheckpointConnector",
     "clusters": "",

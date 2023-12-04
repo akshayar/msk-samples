@@ -1,5 +1,5 @@
 {
-  "connectorName": "MirrorSourceConnector2",
+  "connectorName": "mm2-MirrorSourceConnector",
   "connectorConfiguration": {
     "connector.class": "org.apache.kafka.connect.mirror.MirrorSourceConnector",
     "clusters": "",

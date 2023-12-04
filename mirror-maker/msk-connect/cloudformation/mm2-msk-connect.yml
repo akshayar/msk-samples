@@ -31,12 +31,14 @@ Parameters:
   MSKConnectConnectorLogGroup:
     Type: String
     Default: /aws/msk-connect-mm2
+  WorkerConfigurationArn:
+    Type: String
 Resources:
   MirrorSourceConnector:
     Type: AWS::KafkaConnect::Connector
     Properties:
       ConnectorDescription: MirrorSourceConnector
-      ConnectorName: MirrorSourceConnector
+      ConnectorName: mm2-MirrorSourceConnector
       KafkaCluster:
         ApacheKafkaCluster:
           BootstrapServers: !Ref DestinationClusterBootstrap
@@ -71,12 +73,15 @@ Resources:
             CpuUtilizationPercentage: 20
           ScaleOutPolicy:
             CpuUtilizationPercentage: 80
+      WorkerConfiguration:
+        WorkerConfigurationArn: !Ref WorkerConfigurationArn
+        Revision: 1
       ConnectorConfiguration:
         connector.class: org.apache.kafka.connect.mirror.MirrorSourceConnector
-        clusters:
-        source.cluster.alias:
-        target.cluster.alias:
-        replication.policy.separator:
+        clusters: ""
+        source.cluster.alias: ""
+        target.cluster.alias: ""
+        replication.policy.separator: ""
         source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
         target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
         topics: !Ref SourceTopic
@@ -90,12 +95,11 @@ Resources:
         refresh.topics.interval.seconds: 20
         consumer.group.id: MirrorSourceConnector
         producer.enable.idempotence: true
-        replication.policy.class: com.amazonaws.kafka.samples.CustomMM2ReplicationPolicy
   MSKConnectMirrorCheckpointConnector:
     Type: AWS::KafkaConnect::Connector
     Properties:
       ConnectorDescription: MirrorCheckpointConnector
-      ConnectorName: MirrorCheckpointConnector
+      ConnectorName: mm2-MirrorCheckpointConnector
       KafkaCluster:
         ApacheKafkaCluster:
           BootstrapServers: !Ref DestinationClusterBootstrap
@@ -125,12 +129,15 @@ Resources:
         ProvisionedCapacity:
           McuCount: 1
           WorkerCount: 1
+      WorkerConfiguration:
+        WorkerConfigurationArn: !Ref WorkerConfigurationArn
+        Revision: 1
       ConnectorConfiguration:
         connector.class: org.apache.kafka.connect.mirror.MirrorCheckpointConnector
-        clusters:
-        source.cluster.alias:
-        target.cluster.alias:
-        replication.policy.separator:
+        clusters: ""
+        source.cluster.alias: ""
+        target.cluster.alias: ""
+        replication.policy.separator: ""
         source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
         target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
         tasks.max: 1
@@ -148,7 +155,7 @@ Resources:
     Type: AWS::KafkaConnect::Connector
     Properties:
       ConnectorDescription: MirrorHeartbeatConnector
-      ConnectorName: MirrorHeartbeatConnector
+      ConnectorName: mm2-MirrorHeartbeatConnector
       KafkaCluster:
         ApacheKafkaCluster:
           BootstrapServers: !Ref DestinationClusterBootstrap
@@ -178,12 +185,15 @@ Resources:
         ProvisionedCapacity:
           McuCount: 1
           WorkerCount: 1
+      WorkerConfiguration:
+        WorkerConfigurationArn: !Ref WorkerConfigurationArn
+        Revision: 1
       ConnectorConfiguration:
         connector.class: org.apache.kafka.connect.mirror.MirrorHeartbeatConnector
-        clusters:
-        source.cluster.alias:
-        target.cluster.alias:
-        replication.policy.separator:
+        clusters: ""
+        source.cluster.alias: ""
+        target.cluster.alias: ""
+        replication.policy.separator: ""
         source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
         target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
         tasks.max: 1

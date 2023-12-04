@@ -1,5 +1,5 @@
 {
-  "connectorName": "MirrorHeartbeatConnector",
+  "connectorName": "mm2-MirrorHeartbeatConnector",
   "connectorConfiguration": {
     "connector.class": "org.apache.kafka.connect.mirror.MirrorHeartbeatConnector",
     "clusters": "",
