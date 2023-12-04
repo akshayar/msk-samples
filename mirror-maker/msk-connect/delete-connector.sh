@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 #
 #
 connector_arn=$1
