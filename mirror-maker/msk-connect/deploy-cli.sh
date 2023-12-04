@@ -14,9 +14,9 @@ export LOG_GROUP_NAME=/aws/msk-connect-mm2
 export MSK_CONNECT_ROLE_ARN=arn:aws:iam::ACCOUNT_ID:role/mm2-execution-role
 
 mkdir -p .tmp
-envsubst < mm2-checkpoint-connector.json > .tmp/mm2-checkpoint-connector.json
-envsubst < mm2-heartbeat-connector.json > .tmp/mm2-heartbeat-connector.json
-envsubst < mm2-source-connector.json > .tmp/mm2-source-connector.json
+envsubst < json-config/mm2-checkpoint-connector.json > .tmp/mm2-checkpoint-connector.json
+envsubst < json-config/mm2-heartbeat-connector.json > .tmp/mm2-heartbeat-connector.json
+envsubst < json-config/mm2-source-connector.json > .tmp/mm2-source-connector.json
 
 ./create-connector.sh .tmp/mm2-checkpoint-connector.json &
 ./create-connector.sh .tmp/mm2-heartbeat-connector.json &
