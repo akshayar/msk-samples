@@ -33,6 +33,10 @@ Parameters:
     Default: /aws/msk-connect-mm2
   WorkerConfigurationArn:
     Type: String
+  TopicDefaultReplicationFactor:
+    Type: String
+    Default: 3
+
 Resources:
   MirrorSourceConnector:
     Type: AWS::KafkaConnect::Connector
@@ -88,8 +92,8 @@ Resources:
         tasks.max: !Ref TasksMax
         key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
         value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
-        replication.factor: 3
-        offset-syncs.topic.replication.factor: 3
+        replication.factor: !Ref TopicDefaultReplicationFactor
+        offset-syncs.topic.replication.factor: !Ref TopicDefaultReplicationFactor
         sync.topic.acls.interval.seconds: 20
         sync.topic.configs.interval.seconds: 20
         refresh.topics.interval.seconds: 20
@@ -143,8 +147,8 @@ Resources:
         tasks.max: 1
         key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
         value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
-        replication.factor: 3
-        checkpoints.topic.replication.factor: 3
+        replication.factor: !Ref TopicDefaultReplicationFactor
+        checkpoints.topic.replication.factor: !Ref TopicDefaultReplicationFactor
         emit.checkpoints.interval.seconds: 20
         groups: .*
         sync.group.offsets.enabled: true
@@ -199,8 +203,8 @@ Resources:
         tasks.max: 1
         key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
         value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
-        replication.factor: 3
-        heartbeats.topic.replication.factor: 3
+        replication.factor: !Ref TopicDefaultReplicationFactor
+        heartbeats.topic.replication.factor: !Ref TopicDefaultReplicationFactor
         emit.heartbeats.interval.seconds: 20
         consumer.group.id: MirrorHeartbeatConnector
   MSKConnectRole:

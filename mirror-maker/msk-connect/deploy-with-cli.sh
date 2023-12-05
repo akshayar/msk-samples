@@ -11,7 +11,7 @@ export MM2_CUSTOM_PLUGIN_ARN=
 export MM2_WORKER_CONFIG_ARN=
 export TASK_MAX=2
 export LOG_GROUP_NAME=/aws/msk-connect-mm2
-export MSK_CONNECT_ROLE_ARN=arn:aws:iam::ACCOUNT_ID:role/mm2-execution-role
+export MSK_CONNECT_ROLE_ARN=
 
 mkdir -p .tmp
 envsubst < json-config/mm2-checkpoint-connector.json > .tmp/mm2-checkpoint-connector.json

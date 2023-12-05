@@ -38,15 +38,15 @@ function create_cluster() {
      VolumeSizeGB=${VolumeSizeGB}
 }
 export REGION=ap-south-1
-export MSKSourceKafkaVersion=3.3.2
-export MSKTargetKafkaVersion=3.3.2
+export MSKSourceKafkaVersion=2.2.1
+export MSKTargetKafkaVersion=2.2.1
 export VPCId=vpc-01be4940d7ee23da5
 export Subnet1=subnet-03dfb01c582465083
 export Subnet2=subnet-0d85538e799c33c9c
 export Subnet3=subnet-069dc87ebf9750664
-export SourceInstanceType=kafka.m5.xlarge
-export TargetInstanceType=kafka.m7g.xlarge
-export VolumeSizeGB=512
+export SourceInstanceType=kafka.m5.large
+export TargetInstanceType=kafka.m5.large
+export VolumeSizeGB=256
 echo "Creating MSK client SG"
 aws ec2 create-security-group \
         --vpc-id ${VPCId} --region ${REGION} \
@@ -64,8 +64,8 @@ create_cluster ${SOURCE_CLUSTER_STACK_NAME} ${MSKSourceKafkaVersion} ${SourceIns
 create_cluster ${TARGET_CLUSTER_STACK_NAME} ${MSKTargetKafkaVersion} ${TargetInstanceType}
 
 ## Check for cloudformation stack status and wait
-#aws cloudformation wait stack-create-complete --stack-name msk-source-cluster --region ${REGION} --output text --no-cli-pager
-#aws cloudformation wait stack-create-complete --stack-name msk-destination-cluster --region ${REGION} --output text --no-cli-pager
+aws cloudformation wait stack-create-complete --stack-name msk-source-cluster --region ${REGION} --output text --no-cli-pager
+aws cloudformation wait stack-create-complete --stack-name msk-destination-cluster --region ${REGION} --output text --no-cli-pager
 
 ## Query cloudformation stack output using cli
 getClusterInformation ${SOURCE_CLUSTER_STACK_NAME}
