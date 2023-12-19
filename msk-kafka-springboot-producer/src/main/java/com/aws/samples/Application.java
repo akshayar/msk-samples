@@ -21,7 +21,6 @@ import org.springframework.util.concurrent.SuccessCallback;
 import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TimerTask;
 
 /**
@@ -32,6 +31,8 @@ import java.util.TimerTask;
 public class Application
 {
     private final Logger logger = LoggerFactory.getLogger(Application.class);
+    @Autowired
+    MessageGenerator messageGenerator=new MessageGenerator();
 
     @Value("${spring.kafka.releaseTopic}")
     private String topic;
@@ -54,9 +55,6 @@ public class Application
     private static String topicData;
     public static void main(String[] args) throws  Exception{
         SpringApplication.run(Application.class, args);
-        //read data from msk-kafka-springboot-producer/src/main/resources/sample.json file and convert to json
-        topicData=FileCopyUtils.copyToString(new FileReader("src/main/resources/sample.json"));
-
     }
     @Bean
     public KafkaTemplate<String, String> kafkaTemplate() {
@@ -89,9 +87,14 @@ public class Application
                 private int counter=1;
                 @Override
                 public void run() {
-                    String message=topicData.replaceAll("COUNT",""+counter++);
-                    String messageKey=counter+"";
-                    sendMessageToMain(message, messageKey);
+                    try {
+                        MessageGenerator.MessageContent messageContent=messageGenerator.generateMessage();
+                        sendMessageToMain(messageContent.message, messageContent.key);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+
                 }
             };
             timer.schedule(task, Integer.parseInt(env.getProperty("timer.initialDelay")), Integer.parseInt(env.getProperty("timer.interval")));
@@ -99,6 +102,7 @@ public class Application
     }
 
     private void sendMessageToMain(String message, String messageKey) {
+        logger.info("Message content {}",message);
         template.send(topic, messageKey, message)
                 .completable()
                 .whenComplete((result, error) -> {

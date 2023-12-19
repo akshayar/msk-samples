@@ -9,7 +9,7 @@ spring:
     maxBlockTime: 120000
     bufferMemory: 70554432
     sendBufferBytes: 5242880
-    bootstrapAddress: b-3.testcluster.7gmdra.c4.kafka.ap-south-1.amazonaws.com:9092,b-1.testcluster.7gmdra.c4.kafka.ap-south-1.amazonaws.com:9092,b-2.testcluster.7gmdra.c4.kafka.ap-south-1.amazonaws.com:9092
+    bootstrapAddress: localhost:9092
     maxPollInterval: 600000
     maxInFlightReqPerConnInParallel: 5
     maxInFlightReqPerConnInSync: 1
