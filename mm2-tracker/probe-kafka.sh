@@ -22,7 +22,7 @@ do
          echo "Internal topic ignoring $topic"
          continue
   else
-    echo "Getting offset information from source cluster for topic $topic"
+    echo "Getting offset information from ${CLUSTER_TYPE} cluster for topic $topic"
     ${KAFKA_BIN_PATH}/kafka-run-class.sh kafka.tools.GetOffsetShell \
     --broker-list $KAFKA_URL --topic $topic --time -1 >> ${OFFSET_FILE}
   fi
