@@ -4,7 +4,7 @@ KAFKA_URL=$2
 OFFSET_TOPIC=$3
 TOPIC_LIST_FILE=${CLUSTER_TYPE}_topic_list.txt
 GROUP_LIST_FILE=${CLUSTER_TYPE}_group_list.txt
-TOPIC_OFFSET_FILE=${CLUSTER_TYPE}_offset.txt
+TOPIC_OFFSET_FILE=${CLUSTER_TYPE}_topic_offset.txt
 GROUP_OFFSET_FILE=${CLUSTER_TYPE}_group_offset.txt
 OFFSET_SYNC_FILE=${CLUSTER_TYPE}_offset_sync.txt
 #OFFSET_TOPIC=mm2-offset-syncs..internal
@@ -33,7 +33,7 @@ for group in $GROUP_LIST
 do
     echo "Getting offset information from ${CLUSTER_TYPE} cluster for group $group"
     ${KAFKA_BIN_PATH}/kafka-consumer-groups.sh --bootstrap-server $KAFKA_URL \
-    --group $group --describe >> ${GROUP_OFFSET_FILE}
+    --group $group --describe --state --verbose >> ${GROUP_OFFSET_FILE}
 done
 
 ## If OFFSET_TOPIC is supplied execute rest of the steps
