@@ -11,23 +11,27 @@ import java.util.*;
  */
 public class Main {
     public static void main(String[] args) throws Exception{
-        Map<String,Integer> sourceOffsetMap=new TreeMap<>();
-        Map<String,Integer> destinationOffsetMap=new TreeMap<>();
-        Map<String,Integer> offsetDifference=new HashMap<>();
+        Map<String,Long> sourceOffsetMap=new TreeMap<>();
+        Map<String,Long> destinationOffsetMap=new TreeMap<>();
+        Map<String,Long> offsetDifference=new HashMap<>();
 
-        System.out.printf("Hello and welcome!");
         String topicOffsetSourceFile=args[0];
         String topicOffsetDestinationFile=args[1];
         String offsetSyncTopicFile=args[2];
 
+        Set<String> missingTopicsAtDestination=compareSourceAndDestination("source_topic_list.txt","destination_topic_list.txt");
+        System.out.println("Topics not found at destination: "+missingTopicsAtDestination);
+        Set<String> missingGroupsAtDestination=compareSourceAndDestination("source_group_list.txt","destination_group_list.txt");
+        System.out.println("Groups not found at destination: "+missingGroupsAtDestination);
+
         IOUtils.readLines(new FileReader(topicOffsetSourceFile)).stream().forEach(str->{
             String[] arr=str.split(":");
-            sourceOffsetMap.put(arr[0]+"-"+arr[1],Integer.parseInt(arr[2]));
+            sourceOffsetMap.put(arr[0]+"-"+arr[1],Long.parseLong(arr[2]));
         });
 
         IOUtils.readLines(new FileReader(topicOffsetDestinationFile)).stream().forEach(str->{
             String[] arr=str.split(":");
-            destinationOffsetMap.put(arr[0]+"-"+arr[1],Integer.parseInt(arr[2]));
+            destinationOffsetMap.put(arr[0]+"-"+arr[1],Long.parseLong(arr[2]));
         });
         System.out.println(sourceOffsetMap);
         System.out.println(destinationOffsetMap);
@@ -37,18 +41,36 @@ public class Main {
             String topicPartition=arr[0].split("=")[1];
             String sourceOffset=arr[1].split("=")[1];
             String destinationOffset=arr[2].split("=")[1];
-            offsetDifference.put(topicPartition,Integer.parseInt(destinationOffset)-Integer.parseInt(sourceOffset));
+            offsetDifference.put(topicPartition,Long.parseLong(destinationOffset)-Long.parseLong(sourceOffset));
         });
         System.out.println(offsetDifference);
         sourceOffsetMap.keySet().stream().forEach(k->{
-            Integer sourceOffset=sourceOffsetMap.get(k);
-            Integer destinationOffset= Optional.ofNullable(destinationOffsetMap.get(k)).orElse(0);
-            Integer offsetDiff=Optional.ofNullable(offsetDifference.get(k)).orElse(0);
-            Integer offsetLag=destinationOffset-(sourceOffset+offsetDiff);
+            Long sourceOffset=sourceOffsetMap.get(k);
+            Long destinationOffset= Optional.ofNullable(destinationOffsetMap.get(k)).orElse(0l);
+            Long offsetDiff=Optional.ofNullable(offsetDifference.get(k)).orElse(0l);
+            Long offsetLag=destinationOffset-(sourceOffset+offsetDiff);
             System.out.println("Offset lag for "+k+" is "+offsetLag);
         });
 
+    }
 
+    private static Set<String> compareSourceAndDestination(String sourceFile, String destinationFiles) {
+        Set<String> source=new HashSet<>();
+        Set<String> destination=new HashSet<>();
+        try{
+            IOUtils.readLines(new FileReader(sourceFile)).stream().forEach(str->{
+                String[] arr=str.split(" ");
+                source.addAll(Arrays.asList(arr));
+            });
+            IOUtils.readLines(new FileReader(destinationFiles)).stream().forEach(str->{
+                String[] arr=str.split(" ");
+                destination.addAll(Arrays.asList(arr));
+            });
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        source.removeAll(destination);
+        return source;
     }
 
     public static String getStringBetweenTwoChars(String input, String startChar, String endChar) {
