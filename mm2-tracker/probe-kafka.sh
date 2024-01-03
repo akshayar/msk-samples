@@ -33,7 +33,7 @@ for group in $GROUP_LIST
 do
     echo "Getting offset information from ${CLUSTER_TYPE} cluster for group $group"
     ${KAFKA_BIN_PATH}/kafka-consumer-groups.sh --bootstrap-server $KAFKA_URL \
-    --group $group --describe --state --verbose >> ${GROUP_OFFSET_FILE}
+    --group $group --describe --verbose >> ${GROUP_OFFSET_FILE}
 done
 
 ## If OFFSET_TOPIC is supplied execute rest of the steps
