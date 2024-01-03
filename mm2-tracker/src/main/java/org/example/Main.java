@@ -21,8 +21,10 @@ public class Main {
 
         Set<String> missingTopicsAtDestination=compareSourceAndDestination("source_topic_list.txt","destination_topic_list.txt");
         System.out.println("Topics not found at destination: "+missingTopicsAtDestination);
+        System.out.println("---------");
         Set<String> missingGroupsAtDestination=compareSourceAndDestination("source_group_list.txt","destination_group_list.txt");
         System.out.println("Groups not found at destination: "+missingGroupsAtDestination);
+        System.out.println("---------");
 
         IOUtils.readLines(new FileReader(topicOffsetSourceFile)).stream().forEach(str->{
             String[] arr=str.split(":");
@@ -33,8 +35,10 @@ public class Main {
             String[] arr=str.split(":");
             destinationOffsetMap.put(arr[0]+"-"+arr[1],Long.parseLong(arr[2]));
         });
-        System.out.println(sourceOffsetMap);
-        System.out.println(destinationOffsetMap);
+        System.out.println("Offset map for topic at source:"+sourceOffsetMap);
+        System.out.println("---------");
+        System.out.println("Offset map for topic at destination:"+destinationOffsetMap);
+        System.out.println("---------");
         IOUtils.readLines(new FileReader(offsetSyncTopicFile)).stream().forEach(str->{
             String output = getStringBetweenTwoChars(str, "{", "}");
             String arr[]=output.split(",");
@@ -43,7 +47,8 @@ public class Main {
             String destinationOffset=arr[2].split("=")[1];
             offsetDifference.put(topicPartition,Long.parseLong(destinationOffset)-Long.parseLong(sourceOffset));
         });
-        System.out.println(offsetDifference);
+        System.out.println("Offset sync map :"+offsetDifference);
+        System.out.println("---------");
         sourceOffsetMap.keySet().stream().forEach(k->{
             Long sourceOffset=sourceOffsetMap.get(k);
             Long destinationOffset= Optional.ofNullable(destinationOffsetMap.get(k)).orElse(0l);
