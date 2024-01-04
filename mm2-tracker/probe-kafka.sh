@@ -2,12 +2,14 @@
 CLUSTER_TYPE=$1
 KAFKA_URL=$2
 OFFSET_TOPIC=$3
+
 TOPIC_LIST_FILE=${CLUSTER_TYPE}_topic_list.txt
 GROUP_LIST_FILE=${CLUSTER_TYPE}_group_list.txt
 TOPIC_OFFSET_FILE=${CLUSTER_TYPE}_topic_offset.txt
 GROUP_OFFSET_FILE=${CLUSTER_TYPE}_group_offset.txt
 OFFSET_SYNC_FILE=${CLUSTER_TYPE}_offset_sync.txt
 #OFFSET_TOPIC=mm2-offset-syncs..internal
+
 echo "Listing all topics in ${CLUSTER_TYPE}"
 TOPIC_LIST=$(${KAFKA_BIN_PATH}/kafka-topics.sh --bootstrap-server $KAFKA_URL --list)
 echo "$TOPIC_LIST" > ${TOPIC_LIST_FILE}
