@@ -6,5 +6,4 @@ offset_topic=$3
 #offset_topic=mm2-offset-syncs..internal
 ./probe-kafka.sh destination ${DESTINATION_KAFKA_URL} &
 ./probe-kafka.sh source ${SOURCE_KAFKA_URL} ${offset_topic} &
-
 wait
