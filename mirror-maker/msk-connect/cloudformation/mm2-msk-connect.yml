@@ -155,6 +155,7 @@ Resources:
         sync.group.offsets.interval.seconds: 20
         refresh.groups.interval.seconds: 20
         consumer.group.id: MirrorCheckpointConnector
+        groups.exclude: "console-consumer-.*,  __.*"
   MirrorHeartbeatConnectorConnector:
     Type: AWS::KafkaConnect::Connector
     Properties:
