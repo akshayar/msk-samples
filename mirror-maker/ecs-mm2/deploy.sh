@@ -1,6 +1,6 @@
 #!/bin/bash
 ## Parameters
-export ECS_CLUSTER_NAME=ForMSK
+export ECS_CLUSTER_NAME=mm2-fargate-cluster
 export REGION=ap-south-1
 export SOURCE_KAFKA_CLUSTER_BOOTSTRAP=""
 export DESTINATION_KAFKA_CLUSTER_BOOTSTRAP=""
