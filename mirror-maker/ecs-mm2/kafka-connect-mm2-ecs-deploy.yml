@@ -38,6 +38,9 @@ Parameters:
   DesiredCount:
     Type: String
     Default: 1
+  ReplicationFactor:
+    Type: String
+    Default: 3
 Conditions:
   CreateService:  !Equals [!Ref CreateService, 'true']
 Resources:
@@ -89,6 +92,8 @@ Resources:
               Value: mm2-offset-2
             - Name: STATUS_STORAGE_TOPIC
               Value: mm2-status-2
+            - Name: REPLICATION_FACTOR
+              Value: !Ref ReplicationFactor
           DockerLabels:
             PROMETHEUS_EXPORTER_PORT: 9901
       Cpu: 2048

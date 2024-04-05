@@ -11,6 +11,7 @@ export ECS_ALB_PublicSubnet1=subnet-0d1111111111
 export ECS_ALB_PublicSubnet2=subnet-032222222222
 ## Uncomment and change the image name if you built an image.
 #export KafkaConnectImage=arawa3/kafka-connect-mm2
+export REPLICATION_FACTOR=2
 
 
 echo "Fetching ECS cluster ARN"
@@ -34,4 +35,5 @@ aws cloudformation deploy --template-file kafka-connect-mm2-ecs-deploy.yml \
    PublicSubnet2=${ECS_ALB_PublicSubnet2} \
    MSKCluster1SG=${MSKCluster1SG} \
    MSKCluster2SG=${MSKCluster2SG} \
-   DesiredCount=3
+   DesiredCount=3 \
+   ReplicationFactor=${REPLICATION_FACTOR}
