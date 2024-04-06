@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Can contain only ASCII characters.
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  SourceKafkaClusterBootstrap:
+    Type: String
+    Description: Source cluster bootstrap.
+  DestinationKafkaClusterBootstrap:
+    Type: String
+    Description: Destination cluster bootstrap.
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC
+  Subnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description:  subnet 1
+  Subnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description:  subnet 1
+  MSKCluster1SG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: MSK Security Group
+  MSKCluster2SG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: MSK Security Group
+  ReplicationFactor:
+    Type: String
+    Default: 3
+  KafkaConnectTopicPrefix:
+    Type: String
+    Default: kk
+  RootGitUrl:
+    Type: String
+    Default: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+Resources:
+
+  KafkaConnectEC2Instance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT30M
+    Properties:
+      InstanceType: m5.large
+      KeyName: !Ref 'KeyName'
+      IamInstanceProfile: !Ref KafkaConnectEC2InstanceProfile
+      SubnetId: !Ref Subnet1
+      SecurityGroupIds:
+        - !Ref MM2ECSSecurityGroup
+        - !Ref MSKCluster1SG
+        - !Ref MSKCluster2SG
+      ImageId: !Ref LatestAmiId
+      Tags:
+        - Key: 'Name'
+          Value: !Sub ${AWS::StackName}-KafkaConnectEC2Instance
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash
+          ## Install required software
+          yum update -y
+          yum install python3.7 -y
+          yum install java-1.8.0-openjdk-devel -y
+          yum install nmap-ncat -y
+          yum install git -y
+          yum install jq -y
+          yum install maven -y
+          export GROUP_ID=kafka-connect-group
+          export DESTINATION_BOOTSTRAP_SERVER=${DestinationKafkaClusterBootstrap}
+          export DESTINATION_BOOTSTRAP_SERVER=${SourceKafkaClusterBootstrap}
+          export CONNECT_TOPIC_REPLICATION_FACTOR=${ReplicationFactor}
+          export OFFSET_STORAGE_TOPIC=${KafkaConnectTopicPrefix}_offset_storage_topic
+          export CONFIG_STORAGE_TOPIC=${KafkaConnectTopicPrefix}_config_storage_topic
+          export STATUS_STORAGE_TOPIC=${KafkaConnectTopicPrefix}_status_storage_topic
+          
+          # Create dirs, get Apache Kafka 3.6.0
+          mkdir -p /home/ec2-user/kafka
+          cd kafka
+          wget https://archive.apache.org/dist/kafka/3.6.0/kafka_2.13-3.6.0.tgz
+          tar -xzf kafka_2.13-3.6.0.tgz --strip 1
+          
+          # Initialize the Kafka cert trust store
+          #su -c 'find /usr/lib/jvm/ -name "cacerts" -exec cp {} /tmp/kafka.client.truststore.jks \;' -s /bin/sh ec2-user
+          
+          # Setup prometheus agent
+          mkdir -p /home/ec2-user/prometheus
+          cd /home/ec2-user/prometheus
+          wget https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.13.0/jmx_prometheus_javaagent-0.13.0.jar
+          
+          mkdir -p /home/ec2-user/kafka-connect
+          cd /home/ec2-user/kafka-connect
+          wget -r https://raw.githubusercontent.com/akshayar/msk-samples/main/mirror-maker/ec2-kafka-connect-cluster/
+          
+          echo "Starting Kafka Connect"
+          envsubst < /home/ec2-user/kafka-connect/connect-distributed-no-auth.properties.template > /home/ec2-user/kafka-connect/connect-distributed-no-auth.properties
+          
+          # Setup unit in systemd for Kafka Connect
+          echo -n "
+          [Unit]
+          Description=Kafka Connect
+          After=network.target
+          
+          [Service]
+          Type=simple
+          User=ec2-user
+          Environment='KAFKA_OPTS=-javaagent:/home/ec2-user/prometheus/jmx_prometheus_javaagent-0.13.0.jar=3600:/home/ec2-user/prometheus/kafka-connect.yml'
+          ExecStart=/bin/sh -c '/home/ec2-user/kafka/bin/connect-distributed.sh /home/ec2-user/kafka-connect/connect-distributed-no-auth.properties > /home/ec2-user/kafka-connect/kafka-connect.log 2>&1'
+          Restart=on-abnormal
+          
+          [Install]
+          WantedBy=multi-user.target" > /home/ec2-user/kafka-connect/kafka-connect.service
+          
+          sudo cp /home/ec2-user/kafka-connect/kafka-connect.service /etc/systemd/system/kafka-connect.service
+          
+          #Signal 
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource KafkaConnectEC2Instance --region ${AWS::Region}
+
+  MM2ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EC2 Security Group
+      VpcId: !Ref VPC
+  KafkaConnectEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Join
+        - '-'
+        - - 'EC2MMMSKCFProfile'
+          - !Ref 'AWS::StackName'
+      Roles:
+        - !Ref KafkaConnectEC2Role
+  KafkaConnectEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: "/"
