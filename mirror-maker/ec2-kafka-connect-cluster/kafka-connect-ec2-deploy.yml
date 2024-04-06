@@ -70,35 +70,43 @@ Resources:
           yum install git -y
           yum install jq -y
           yum install maven -y
+          # Create dirs, get Apache Kafka 3.6.0
+          mkdir -p /home/ec2-user/kafka
+          wget https://archive.apache.org/dist/kafka/3.6.0/kafka_2.13-3.6.0.tgz -P /home/ec2-user/kafka
+          cd /home/ec2-user/kafka
+          tar -xzf kafka_2.13-3.6.0.tgz --strip 1
+          
+          # Setup prometheus agent
+          mkdir -p /home/ec2-user/prometheus
+          chown -R ec2-user /home/ec2-user/prometheus
+          wget https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.13.0/jmx_prometheus_javaagent-0.13.0.jar -P /home/ec2-user/prometheus
+          wget  https://raw.githubusercontent.com/akshayar/msk-samples/main/mirror-maker/ec2-kafka-connect-cluster/kafka-connect.yml -P /home/ec2-user/prometheus
+          
+          mkdir -p /home/ec2-user/kafka-connect
+          mkdir -p /home/ec2-user/kafka-connect/mm2/
+          chown -R ec2-user /home/ec2-user/kafka-connect
+          chown -R ec2-user /home/ec2-user/kafka-connect/mm2
+          wget  https://raw.githubusercontent.com/akshayar/msk-samples/main/mirror-maker/ec2-kafka-connect-cluster/connect-distributed-no-auth.properties.template -P /home/ec2-user/kafka-connect
+          wget  https://raw.githubusercontent.com/akshayar/msk-samples/main/mirror-maker/ec2-kafka-connect-cluster/connect-distributed.properties.template -P /home/ec2-user/kafka-connect
+          wget  https://raw.githubusercontent.com/akshayar/msk-samples/main/mirror-maker/connectors/no-auth/mm2-cpc-cust-repl-policy.json -P /home/ec2-user/kafka-connect
+          wget  https://raw.githubusercontent.com/akshayar/msk-samples/main/mirror-maker/connectors/no-auth/mm2-hbc-no-auth.json -P /home/ec2-user/kafka-connect
+          wget  https://raw.githubusercontent.com/akshayar/msk-samples/main/mirror-maker/connectors/no-auth/mm2-msc-cust-repl-policy.json -P /home/ec2-user/kafka-connect
+          
           export GROUP_ID=kafka-connect-group
-          export DESTINATION_BOOTSTRAP_SERVER=${DestinationKafkaClusterBootstrap}
-          export DESTINATION_BOOTSTRAP_SERVER=${SourceKafkaClusterBootstrap}
+          export KafkaConnectTopicPrefix=mm2
+          export MSK_SOURCE_BOOTSTRAP=${DestinationKafkaClusterBootstrap}
+          export MSK_DESTINATION_BOOTSTRAP=${SourceKafkaClusterBootstrap}
           export CONNECT_TOPIC_REPLICATION_FACTOR=${ReplicationFactor}
+          export REPLICATION_FACTOR=${ReplicationFactor}
           export OFFSET_STORAGE_TOPIC=${KafkaConnectTopicPrefix}_offset_storage_topic
           export CONFIG_STORAGE_TOPIC=${KafkaConnectTopicPrefix}_config_storage_topic
           export STATUS_STORAGE_TOPIC=${KafkaConnectTopicPrefix}_status_storage_topic
           
-          # Create dirs, get Apache Kafka 3.6.0
-          mkdir -p /home/ec2-user/kafka
-          cd kafka
-          wget https://archive.apache.org/dist/kafka/3.6.0/kafka_2.13-3.6.0.tgz
-          tar -xzf kafka_2.13-3.6.0.tgz --strip 1
-          
-          # Initialize the Kafka cert trust store
-          #su -c 'find /usr/lib/jvm/ -name "cacerts" -exec cp {} /tmp/kafka.client.truststore.jks \;' -s /bin/sh ec2-user
-          
-          # Setup prometheus agent
-          mkdir -p /home/ec2-user/prometheus
-          cd /home/ec2-user/prometheus
-          wget https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.13.0/jmx_prometheus_javaagent-0.13.0.jar
-          
-          mkdir -p /home/ec2-user/kafka-connect
-          cd /home/ec2-user/kafka-connect
-          wget -r https://raw.githubusercontent.com/akshayar/msk-samples/main/mirror-maker/ec2-kafka-connect-cluster/
-          
-          echo "Starting Kafka Connect"
           envsubst < /home/ec2-user/kafka-connect/connect-distributed-no-auth.properties.template > /home/ec2-user/kafka-connect/connect-distributed-no-auth.properties
-          
+          envsubst < /home/ec2-user/kafka-connect/mm2-cpc-cust-repl-policy.json > /home/ec2-user/kafka-connect/mm2/mm2-cpc-cust-repl-policy.json
+          envsubst < /home/ec2-user/kafka-connect/mm2-hbc-no-auth.json > /home/ec2-user/kafka-connect/mm2/mm2-hbc-no-auth.json
+          envsubst < /home/ec2-user/kafka-connect/mm2-msc-cust-repl-policy.json > /home/ec2-user/kafka-connect/mm2/mm2-msc-cust-repl-policy.json
+
           # Setup unit in systemd for Kafka Connect
           echo -n "
           [Unit]
@@ -114,9 +122,7 @@ Resources:
           
           [Install]
           WantedBy=multi-user.target" > /home/ec2-user/kafka-connect/kafka-connect.service
-          
-          sudo cp /home/ec2-user/kafka-connect/kafka-connect.service /etc/systemd/system/kafka-connect.service
-          
+          cp /home/ec2-user/kafka-connect/kafka-connect.service /etc/systemd/system/kafka-connect.service
           #Signal 
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource KafkaConnectEC2Instance --region ${AWS::Region}
 
