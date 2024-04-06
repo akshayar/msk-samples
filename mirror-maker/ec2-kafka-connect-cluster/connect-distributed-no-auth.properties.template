@@ -20,7 +20,7 @@
 # the `bootstrap.servers` and those specifying replication factors.
 
 # A list of host/port pairs to use for establishing the initial connection to the Kafka cluster.
-bootstrap.servers=${DESTINATION_BOOTSTRAP_SERVER}
+bootstrap.servers=${MSK_DESTINATION_BOOTSTRAP}
 
 # unique name for the cluster, used in forming the Connect cluster group. Note that this must not conflict with consumer group IDs
 group.id=${GROUP_ID}
