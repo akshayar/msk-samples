@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "namespace": "com.aws.samples.generators",
+  "name": "Trade",
+  "fields": [
+    { "name": "id", "type": "string", "doc": "ID" },
+    { "name": "symbol", "type": "string", "doc": "Symbol" },
+    { "name": "timestamp", "type": "long", "doc": "Timestamp" },
+    { "name": "description", "type": "string", "doc": "Description" },
+    { "name": "tradeId", "type": "string",  "doc": "Trade Id" },
+    { "name": "orderId", "type": "string",  "doc": "Order Id" }
+  ]
+}

@@ -3,23 +3,41 @@ server:
 timer:
   interval: 500
   initialDelay: 1000
+aws:
+  gsr:
+    region: ap-south-1
+    registryName: msk
+    schemaName: testavro
+    autoRegistration: true
+    ttl: 86400000
+    cacheSize: 10
+    compatibility: FULL
 spring:
+  main:
+    web-application-type: none
   kafka:
+    messageFormat: AVRO #JSON,JSON_WITH_SCHEMA,AVRO, PROTOBUF
     acknowledgment: all
     maxBlockTime: 120000
     bufferMemory: 70554432
     sendBufferBytes: 5242880
-    bootstrapAddress: localhost:9092
-    maxPollInterval: 600000
     maxInFlightReqPerConnInParallel: 5
-    maxInFlightReqPerConnInSync: 1
     deliveryTimeoutMs: 60000
     producerRetryTimeOutMilliSeconds: 60000
-    heartBeatsIntervalInMilli: 3000
-    sessionTimeOutInMilli: 10000
-    autoCommitInterval: 5000
-    releaseTopic: releasex-4
-    rf: 2
-    partitions: 3
-    minIsr: 2
-    fallbackTopic : fallback
+    bootstrapAddress: localhost:9092
+    json:
+      mainTopic: test-topic
+      fallbackTopic : fallback
+      schemaFile: src/main/resources/TradeJsonSchema.json
+      schemaName: testjsonschema
+    avro:
+      mainTopic: test-avro
+      fallbackTopic: fallback
+      schemaFile: src/main/resources/Trade.avsc
+      schemaName: testavro
+    protobuf:
+      mainTopic: test-avro
+      fallbackTopic: fallback
+      schemaName: testprotobuf
+
+

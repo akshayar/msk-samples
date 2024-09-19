@@ -21,19 +21,25 @@
     <maven.compiler.source>15</maven.compiler.source>
     <maven.compiler.target>15</maven.compiler.target>
     <java.version>15</java.version>
+    <aws.msk.iam.auth>2.0.3</aws.msk.iam.auth>
+    <protobuf.java.version>3.19.6</protobuf.java.version>
+    <junit.version>4.13.1</junit.version>
+    <spring.kafka.version>2.7.6</spring.kafka.version>
+    <java.faker.version>0.17.2</java.faker.version>
+    <glue.schema.reg.version>1.1.9</glue.schema.reg.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.11</version>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
-      <version>2.7.6</version>
+      <version>${spring.kafka.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -51,7 +57,17 @@
     <dependency>
       <groupId>com.github.javafaker</groupId>
       <artifactId>javafaker</artifactId>
-      <version>0.17.2</version>
+      <version>${java.faker.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.glue</groupId>
+      <artifactId>schema-registry-serde</artifactId>
+      <version>${glue.schema.reg.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>${protobuf.java.version}</version>
     </dependency>
   </dependencies>
 

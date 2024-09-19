@@ -1,26 +1,50 @@
-package com.aws.samples;
+package com.aws.samples.json;
 
+import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema;
 import com.github.javafaker.Faker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.Date;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-@Component
-public class MessageGenerator {
+@Component("json")
+public class MessageGeneratorJson {
+    private final Logger logger = LoggerFactory.getLogger(MessageGeneratorJson.class);
     public static class MessageContent{
-        String key;
-        String message;
+        public String key;
+        public JsonDataWithSchema message;
+        public String plainTextMessage;
 
     }
     Faker faker = new Faker();
     @Value("${template:src/main/resources/message-template.json}")
     String templateFile;
+    @Value("${spring.kafka.messageFormat}")
+    String messageFormat;
+    @Value("${spring.kafka.json.schemaFile:src/main/resources/TradeJsonSchema.json}")
+    String jsonSchemaPath;
+    String jsonSchema ;
+
     private static long counter=0;
+
+    private String getJsonSchema(){
+        if(jsonSchema==null){
+            try {
+                jsonSchema=FileCopyUtils.copyToString(new FileReader(jsonSchemaPath));
+            } catch (IOException e) {
+                logger.error("Error in reading schema",e);
+                throw new RuntimeException(e);
+            }
+        }
+        return jsonSchema;
+    }
 
     public MessageContent generateMessage() throws Exception {
         String message= FileCopyUtils.copyToString(new FileReader(templateFile));
@@ -30,7 +54,10 @@ public class MessageGenerator {
         }
         MessageContent messageContent=new MessageContent();
         messageContent.key=fakeValues.getProperty("counter");
-        messageContent.message=message;
+        messageContent.plainTextMessage=message;
+        if(!"json".equalsIgnoreCase(messageFormat)){
+            messageContent.message=JsonDataWithSchema.builder(getJsonSchema(),message).build();
+        }
         return messageContent;
     }
 
