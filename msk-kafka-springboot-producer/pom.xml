@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>2.5.4</version>
+    <version>2.7.18</version>
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
   <groupId>com.aws.samples</groupId>
@@ -25,8 +25,8 @@
     <protobuf.java.version>3.19.6</protobuf.java.version>
     <junit.version>4.13.1</junit.version>
     <spring.kafka.version>2.7.6</spring.kafka.version>
-    <java.faker.version>0.17.2</java.faker.version>
-    <glue.schema.reg.version>1.1.9</glue.schema.reg.version>
+    <java.faker.version>1.0.2</java.faker.version>
+    <glue.schema.reg.version>1.1.19</glue.schema.reg.version>
   </properties>
 
   <dependencies>
@@ -39,7 +39,6 @@
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
-      <version>${spring.kafka.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
