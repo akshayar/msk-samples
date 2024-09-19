@@ -13,9 +13,7 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,36 +25,35 @@ public class SecretManagerClientCallbackHandler implements AuthenticateCallbackH
         ObjectMapper objectMapper = new ObjectMapper();
 
         // Create a Secrets Manager client
-        SecretsManagerClient client = SecretsManagerClient.builder()
+        JsonNode secretNode;
+        try (SecretsManagerClient client = SecretsManagerClient.builder()
                 .region(Region.of(region))
-                .build();
+                .build()) {
 
-        // In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
-        // See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-        // We rethrow the exception by default.
+            // In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
+            // See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+            // We rethrow the exception by default.
 
-        String secret, decodedBinarySecret;
-        GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder()
-                .secretId(secretName).build();
-        GetSecretValueResponse getSecretValueResult = null;
-        JsonNode secretNode = null;
-        try {
-            getSecretValueResult = client.getSecretValue(getSecretValueRequest);
+            String secret, decodedBinarySecret;
+            GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder()
+                    .secretId(secretName).build();
+            try {
+                GetSecretValueResponse getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
 
-            // Decrypts secret using the associated KMS key.
-            // Depending on whether the secret is a string or binary, one of these fields will be populated.
-            if (getSecretValueResult.secretString() != null) {
-                secret = getSecretValueResult.secretString();
-                secretNode = objectMapper.readTree(secret);
+                // Decrypts secret using the associated KMS key.
+                // Depending on whether the secret is a string or binary, one of these fields will be populated.
+                if (getSecretValueResponse.secretString() != null) {
+                    secret = getSecretValueResponse.secretString();
+                    secretNode = objectMapper.readTree(secret);
 
-            } else {
-                decodedBinarySecret = new String(Base64.getDecoder().decode(getSecretValueResult.secretBinary().asByteArray()));
-                secretNode = objectMapper.readTree(decodedBinarySecret);
+                } else {
+                    decodedBinarySecret = new String(Base64.getDecoder().decode(getSecretValueResponse.secretBinary().asByteArray()));
+                    secretNode = objectMapper.readTree(decodedBinarySecret);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
-
 
         return secretNode;
     }
@@ -76,7 +73,7 @@ public class SecretManagerClientCallbackHandler implements AuthenticateCallbackH
     }
 
     @Override
-    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+    public void handle(Callback[] callbacks) {
         JsonNode node = getSecret(secretName, region);
         String username = node.get("username").asText();
         String password = node.get("password").asText();
