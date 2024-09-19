@@ -10,12 +10,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
-import org.springframework.util.concurrent.FailureCallback;
-import org.springframework.util.concurrent.SuccessCallback;
 import software.amazon.awssdk.services.glue.model.DataFormat;
 
+import java.io.IOException;
 import java.util.Map;
 
 @Component
@@ -41,7 +39,7 @@ public class ProducerAvro extends Producer
         return  env;
     }
     @Override
-    protected Map<String, Object> senderProps() {
+    protected Map<String, Object> senderProps() throws IOException {
         Map<String, Object> props=super.senderProps();
         props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, env().getProperty("spring.kafka.avro.schemaName"));
         props.put(AWSSchemaRegistryConstants.DATA_FORMAT, DataFormat.AVRO);
@@ -54,7 +52,7 @@ public class ProducerAvro extends Producer
     }
 
 
-    private void sendMessageToMain(GenericRecord message, String messageKey) {
+    private void sendMessageToMain(GenericRecord message, String messageKey) throws IOException {
         logger.info("Message content {}",message);
         if (template == null) {
             template = new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps()));
@@ -74,22 +72,18 @@ public class ProducerAvro extends Producer
     }
 
     private void sendMessageToFallbackTopic(GenericRecord message, String messageKey) {
-        if(template2==null){
-            template2=new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps()));
-        }
-        template2.send(fallbackTopic, messageKey, message)
-                .addCallback(new SuccessCallback<>() {
-                                 @Override
-                                 public void onSuccess(SendResult<String, GenericRecord> stringStringSendResult) {
-                                     logger.info("Message no {} sent to topic {} , partition {} successfully", messageKey, stringStringSendResult.getRecordMetadata().topic(), stringStringSendResult.getRecordMetadata().partition());
-                                 }
-                             },
-                        new FailureCallback() {
-                            @Override
-                            public void onFailure(Throwable throwable) {
+        try {
+            if(template2==null){
+                template2=new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps()));
+            }
+            template2.send(fallbackTopic, messageKey, message)
+                    .addCallback(stringStringSendResult -> logger.info("Message no {} sent to topic {} , partition {} successfully", messageKey, stringStringSendResult.getRecordMetadata().topic(), stringStringSendResult.getRecordMetadata().partition()),
+                            throwable -> {
                                 logger.info("Failed to send message key :{} , content:{}", messageKey, message);
                                 logger.info("Error occurred while sending message ",throwable);
-                            }
-                        });
+                            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

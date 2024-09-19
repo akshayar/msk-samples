@@ -3,28 +3,12 @@ server:
 timer:
   interval: 500
   initialDelay: 1000
-aws:
-  gsr:
-    region: ap-south-1
-    registryName: msk
-    schemaName: testavro
-    autoRegistration: true
-    ttl: 86400000
-    cacheSize: 10
-    compatibility: FULL
 spring:
   main:
     web-application-type: none
   kafka:
+    propertiesFilePath: src/main/resources/kafka_sasl.properties
     messageFormat: JSON #JSON,JSON_WITH_SCHEMA,AVRO, PROTOBUF
-    acknowledgment: all
-    maxBlockTime: 120000
-    bufferMemory: 70554432
-    sendBufferBytes: 5242880
-    maxInFlightReqPerConnInParallel: 5
-    deliveryTimeoutMs: 60000
-    producerRetryTimeOutMilliSeconds: 60000
-    bootstrapAddress: localhost:9092
     json:
       mainTopic: test-topic
       fallbackTopic : fallback

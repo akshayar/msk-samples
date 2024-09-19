@@ -22,9 +22,9 @@
     <maven.compiler.target>15</maven.compiler.target>
     <java.version>15</java.version>
     <aws.msk.iam.auth>2.0.3</aws.msk.iam.auth>
+    <aws.sdk.version>2.22.12</aws.sdk.version>
     <protobuf.java.version>3.19.6</protobuf.java.version>
     <junit.version>4.13.1</junit.version>
-    <spring.kafka.version>2.7.6</spring.kafka.version>
     <java.faker.version>1.0.2</java.faker.version>
     <glue.schema.reg.version>1.1.19</glue.schema.reg.version>
   </properties>
@@ -67,6 +67,12 @@
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
       <version>${protobuf.java.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/secretsmanager -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>secretsmanager</artifactId>
+      <version>2.28.0</version>
     </dependency>
   </dependencies>
 
