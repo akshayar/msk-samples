@@ -25,6 +25,12 @@
     <aws.sdk.version>2.22.12</aws.sdk.version>
     <protobuf.java.version>3.19.6</protobuf.java.version>
     <os.detected.classifier>osx-x86_64</os.detected.classifier>
+    <!--
+    For Linux
+    <os.detected.classifier>linux-x86_64</os.detected.classifier>
+    For Windows
+    <os.detected.classifier>windows-x86_64</os.detected.classifier>
+    -->
     <junit.version>4.13.1</junit.version>
     <java.faker.version>1.0.2</java.faker.version>
     <glue.schema.reg.version>1.1.19</glue.schema.reg.version>
