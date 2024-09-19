@@ -1,0 +1,10 @@
+syntax = "proto3";
+package com.aws.samples.generators;
+message Trade {
+    string id = 1; // ID
+    string symbol = 2; // Symbol
+    int64 timestamp = 3; // Timestamp
+    string description = 4; // Description
+    string tradeId = 5; // Trade Id
+    string orderId = 6; // Order Id
+}

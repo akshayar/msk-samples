@@ -1,7 +1,8 @@
 package com.aws.samples.protobuff;
 
-import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema;
+import com.aws.samples.generators.TradeOuterClass;
 import com.github.javafaker.Faker;
+import com.google.protobuf.DynamicMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +20,7 @@ public class MessageGeneratorProtobuff {
     private final Logger logger = LoggerFactory.getLogger(MessageGeneratorProtobuff.class);
     public static class MessageContent{
         public String key;
-        public JsonDataWithSchema message;
+        public DynamicMessage message;
 
     }
     Faker faker = new Faker();
@@ -45,14 +46,17 @@ public class MessageGeneratorProtobuff {
 
     public MessageContent generateMessage() throws Exception {
         String message= FileCopyUtils.copyToString(new FileReader(templateFile));
-        Properties fakeValues=generateFakeProperties();
-        for (String key:fakeValues.stringPropertyNames()){
-            message=message.replace("${"+key+"}",fakeValues.getProperty(key));
-        }
-        JsonDataWithSchema jsonDataWithSchema=JsonDataWithSchema.builder(getJsonSchema(),message).build();
+        Properties fakeValues =generateFakeProperties();
+        DynamicMessage.Builder builder=DynamicMessage.newBuilder(TradeOuterClass.Trade.getDescriptor());
+        TradeOuterClass.Trade.getDescriptor().getFields().forEach(d->{
+//            logger.info("Field"+d);
+            builder.setField(d,fakeValues.get(d.getName()));
+        });
+
+        DynamicMessage tradeMessage=builder.build();
         MessageContent messageContent=new MessageContent();
         messageContent.key=fakeValues.getProperty("counter");
-        messageContent.message=jsonDataWithSchema;
+        messageContent.message=tradeMessage;
         return messageContent;
     }
 
@@ -76,7 +80,7 @@ public class MessageGeneratorProtobuff {
         properties.put("portfolioId","port"+tradeId);
         properties.put("customerId","cust"+tradeId);
         properties.put("symbol",symbol);
-        properties.put("timestamp", String.valueOf(epochSeconds));
+        properties.put("timestamp", epochSeconds);
         properties.put( "orderTimestamp", String.valueOf(epochSeconds));
         properties.put("description",symbol+" Description of trade");
         properties.put("traderName",symbol+" Trader");

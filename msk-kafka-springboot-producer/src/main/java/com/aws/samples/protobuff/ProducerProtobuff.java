@@ -1,8 +1,8 @@
 package com.aws.samples.protobuff;
 
-import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema;
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
 import com.aws.samples.Producer;
+import com.google.protobuf.DynamicMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +11,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.services.glue.model.DataFormat;
 
 import java.io.IOException;
 import java.util.Map;
@@ -20,15 +21,15 @@ public class ProducerProtobuff extends Producer {
     private final Logger logger = LoggerFactory.getLogger(ProducerProtobuff.class);
     @Autowired
     MessageGeneratorProtobuff messageGenerator = new MessageGeneratorProtobuff();
-    @Value("${spring.kafka.json.mainTopic}")
+    @Value("${spring.kafka.protobuf.mainTopic}")
     protected String topic;
-    @Value("${spring.kafka.json.fallbackTopic}")
+    @Value("${spring.kafka.protobuf.fallbackTopic}")
     protected String fallbackTopic;
     @Autowired
     private Environment env;
 
-    protected KafkaTemplate<String, JsonDataWithSchema> template;
-    protected KafkaTemplate<String, JsonDataWithSchema> template2;
+    protected KafkaTemplate<String, DynamicMessage> template;
+    protected KafkaTemplate<String, DynamicMessage> template2;
 
     @Override
     protected Environment env(){
@@ -37,7 +38,8 @@ public class ProducerProtobuff extends Producer {
     @Override
     protected Map<String, Object> senderProps() throws IOException {
         Map<String, Object> props=super.senderProps();
-        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, env().getProperty("spring.kafka.json.schemaName"));
+        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, env().getProperty("spring.kafka.protobuf.schemaName"));
+        props.put(AWSSchemaRegistryConstants.DATA_FORMAT, DataFormat.PROTOBUF);
         return  props;
     }
 
@@ -47,7 +49,7 @@ public class ProducerProtobuff extends Producer {
         sendMessageToMain(messageContent.message, messageContent.key);
     }
 
-    protected void sendMessageToMain(JsonDataWithSchema message, String messageKey) throws IOException {
+    protected void sendMessageToMain(DynamicMessage message, String messageKey) throws IOException {
         logger.info("Message content {}", message);
         if (template == null) {
             template = new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps()));
@@ -66,7 +68,7 @@ public class ProducerProtobuff extends Producer {
                 });
     }
 
-    protected void sendMessageToFallbackTopic(JsonDataWithSchema message, String messageKey) {
+    protected void sendMessageToFallbackTopic(DynamicMessage message, String messageKey) {
         try{
             if (template2 == null) {
                 template2 = new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps()));

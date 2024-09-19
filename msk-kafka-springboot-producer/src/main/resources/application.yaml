@@ -7,8 +7,8 @@ spring:
   main:
     web-application-type: none
   kafka:
-    propertiesFilePath: src/main/resources/kafka_sasl.properties
-    messageFormat: JSON #JSON,JSON_WITH_SCHEMA,AVRO, PROTOBUF
+    propertiesFilePath: src/main/resources/kafka.properties
+    messageFormat: PROTOBUF #JSON,JSON_WITH_SCHEMA,AVRO, PROTOBUF
     json:
       mainTopic: test-topic
       fallbackTopic : fallback

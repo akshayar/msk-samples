@@ -24,6 +24,7 @@
     <aws.msk.iam.auth>2.0.3</aws.msk.iam.auth>
     <aws.sdk.version>2.22.12</aws.sdk.version>
     <protobuf.java.version>3.19.6</protobuf.java.version>
+    <os.detected.classifier>osx-x86_64</os.detected.classifier>
     <junit.version>4.13.1</junit.version>
     <java.faker.version>1.0.2</java.faker.version>
     <glue.schema.reg.version>1.1.19</glue.schema.reg.version>
@@ -84,6 +85,44 @@
   </dependencies>
 
   <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/main/generated-proto</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>0.6.1</version>
+        <configuration>
+          <protocArtifact>com.google.protobuf:protoc:${protobuf.java.version}:exe:${os.detected.classifier}</protocArtifact>
+          <protoSourceRoot>${project.basedir}/src/main/proto</protoSourceRoot>
+          <outputDirectory>${project.basedir}/src/main/generated-proto</outputDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+              <goal>test-compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
     <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
       <plugins>
         <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
