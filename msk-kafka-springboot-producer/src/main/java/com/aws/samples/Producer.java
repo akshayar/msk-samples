@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 
 public abstract class Producer {
-    private final Logger logger = LoggerFactory.getLogger(Producer.class);
+    private static final Logger logger = LoggerFactory.getLogger(Producer.class);
 
     public abstract void generateAndSendMessage() throws Exception;
 

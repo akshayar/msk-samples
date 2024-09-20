@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 @Component("avro")
 public class MessageGeneratorAvro {
-    private final Logger logger = LoggerFactory.getLogger(MessageGeneratorAvro.class);
+    private static final Logger logger = LoggerFactory.getLogger(MessageGeneratorAvro.class);
 
     public static class MessageContent{
         public String key;

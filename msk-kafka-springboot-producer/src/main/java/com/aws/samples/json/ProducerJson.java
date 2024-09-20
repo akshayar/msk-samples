@@ -17,7 +17,7 @@ import java.util.Map;
 
 @Component
 public class ProducerJson extends Producer {
-    private final Logger logger = LoggerFactory.getLogger(ProducerJson.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProducerJson.class);
     @Autowired
     MessageGeneratorJson messageGenerator = new MessageGeneratorJson();
     @Value("${spring.kafka.json.mainTopic}")

@@ -19,7 +19,7 @@ import java.util.Map;
 @Component
 public class ProducerAvro extends Producer
 {
-    private final Logger logger = LoggerFactory.getLogger(ProducerAvro.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProducerAvro.class);
 
     @Autowired
     MessageGeneratorAvro messageGenerator=new MessageGeneratorAvro();

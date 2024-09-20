@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "number"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tradeId": {
+      "type": "string"
+    },
+    "orderId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "symbol",
+    "timestamp",
+    "description",
+    "tradeId",
+    "orderId"
+  ]
+}

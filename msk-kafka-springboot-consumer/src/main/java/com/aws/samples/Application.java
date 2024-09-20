@@ -1,9 +1,9 @@
 package com.aws.samples;
 
-import com.aws.samples.avro.ProducerAvro;
-import com.aws.samples.json.ProducerJson;
-import com.aws.samples.json.ProducerJsonWithSchema;
-import com.aws.samples.protobuff.ProducerProtobuf;
+import com.aws.samples.avro.ConsumerAvro;
+import com.aws.samples.json.ConsumerJson;
+import com.aws.samples.json.ConsumerJsonWithSchema;
+import com.aws.samples.protobuff.ConsumerProtobuf;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +32,10 @@ public class Application implements ApplicationContextAware {
 
     @Autowired
     private Environment env;
+    @Value("${spring.whatToDo}")
+    private String whatToDo;
 
-    Producer producer;
+    Consumer consumer;
     private ApplicationContext applicationContext;
 
     public static void main(String[] args) throws  Exception{
@@ -50,27 +52,27 @@ public class Application implements ApplicationContextAware {
 
             String messageFormat=env.getProperty("spring.kafka.messageFormat");
             logger.info(messageFormat);
-            produce(messageFormat,timer);
+            consume(messageFormat,timer);
 
         };
     }
 
-    private void produce(String messageFormat, Timer timer) {
-        if("json".equalsIgnoreCase(messageFormat)){
-            producer=applicationContext.getBean(ProducerJson.class);
+    private void consume(String messageFormat, Timer timer){
+        if("avro".equalsIgnoreCase(messageFormat)){
+            consumer=applicationContext.getBean(ConsumerAvro.class);
+        } else if ("json".equalsIgnoreCase(messageFormat)) {
+            consumer=applicationContext.getBean(ConsumerJson.class);
         }else if("JSON_WITH_SCHEMA".equalsIgnoreCase(messageFormat)){
-            producer=applicationContext.getBean(ProducerJsonWithSchema.class);
-        }else if("avro".equalsIgnoreCase(messageFormat)){
-            producer=applicationContext.getBean(ProducerAvro.class);
-        }else {
-            producer=applicationContext.getBean(ProducerProtobuf.class);
+            consumer=applicationContext.getBean(ConsumerJsonWithSchema.class);
+        }else if("PROTOBUF".equalsIgnoreCase(messageFormat)){
+            consumer=applicationContext.getBean(ConsumerProtobuf.class);
         }
 
         TimerTask task=new TimerTask() {
             @Override
             public void run() {
                 try {
-                    producer.generateAndSendMessage();
+                    consumer.consumeAndPrintMessages();
                 }catch (Exception e){
                     logger.info("Exception",e);
                     throw new RuntimeException(e);
@@ -80,6 +82,7 @@ public class Application implements ApplicationContextAware {
         };
         timer.schedule(task, Integer.parseInt(Objects.requireNonNull(env.getProperty("timer.initialDelay"))), Integer.parseInt(Objects.requireNonNull(env.getProperty("timer.interval"))));
     }
+
 
     @Override
     public void setApplicationContext(@NotNull ApplicationContext applicationContext) throws BeansException {
