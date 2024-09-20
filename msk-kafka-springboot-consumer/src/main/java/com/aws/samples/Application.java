@@ -32,8 +32,6 @@ public class Application implements ApplicationContextAware {
 
     @Autowired
     private Environment env;
-    @Value("${spring.whatToDo}")
-    private String whatToDo;
 
     Consumer consumer;
     private ApplicationContext applicationContext;
