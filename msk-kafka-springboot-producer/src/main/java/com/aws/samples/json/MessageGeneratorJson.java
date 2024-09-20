@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 @Component("json")
 public class MessageGeneratorJson {
-    private final Logger logger = LoggerFactory.getLogger(MessageGeneratorJson.class);
+    private static final Logger logger = LoggerFactory.getLogger(MessageGeneratorJson.class);
     public static class MessageContent{
         public String key;
         public JsonDataWithSchema message;
@@ -28,7 +28,7 @@ public class MessageGeneratorJson {
     String templateFile;
     @Value("${spring.kafka.messageFormat}")
     String messageFormat;
-    @Value("${spring.kafka.json.schemaFile:src/main/resources/TradeJsonSchema.json}")
+    @Value("${spring.kafka.json_with_schema.schemaFile:src/main/resources/TradeJsonSchema.json}")
     String jsonSchemaPath;
     String jsonSchema ;
 
@@ -55,7 +55,7 @@ public class MessageGeneratorJson {
         MessageContent messageContent=new MessageContent();
         messageContent.key=fakeValues.getProperty("counter");
         messageContent.plainTextMessage=message;
-        if(!"json".equalsIgnoreCase(messageFormat)){
+        if("JSON_WITH_SCHEMA".equalsIgnoreCase(messageFormat)){
             messageContent.message=JsonDataWithSchema.builder(getJsonSchema(),message).build();
         }
         return messageContent;

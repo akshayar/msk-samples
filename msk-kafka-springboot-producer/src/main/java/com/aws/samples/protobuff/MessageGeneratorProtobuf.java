@@ -16,8 +16,8 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 @Component("protobuff")
-public class MessageGeneratorProtobuff {
-    private final Logger logger = LoggerFactory.getLogger(MessageGeneratorProtobuff.class);
+public class MessageGeneratorProtobuf {
+    private static final Logger logger = LoggerFactory.getLogger(MessageGeneratorProtobuf.class);
     public static class MessageContent{
         public String key;
         public DynamicMessage message;

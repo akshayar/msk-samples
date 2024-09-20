@@ -8,6 +8,7 @@
     { "name": "timestamp", "type": "long", "doc": "Timestamp" },
     { "name": "description", "type": "string", "doc": "Description" },
     { "name": "tradeId", "type": "string",  "doc": "Trade Id" },
-    { "name": "orderId", "type": "string",  "doc": "Order Id" }
+    { "name": "orderId", "type": "string",  "doc": "Order Id" },
+    { "name": "name", "type": "string",  "doc": "Name" ,  "default": ""  }
   ]
 }

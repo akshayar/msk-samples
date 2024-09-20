@@ -4,24 +4,29 @@ timer:
   interval: 500
   initialDelay: 1000
 spring:
+  whatToDo: both #consume,produce,both
   main:
     web-application-type: none
   kafka:
     propertiesFilePath: src/main/resources/kafka.properties
-    messageFormat: PROTOBUF #JSON,JSON_WITH_SCHEMA,AVRO, PROTOBUF
+    messageFormat: JSON_WITH_SCHEMA #JSON,JSON_WITH_SCHEMA,AVRO, PROTOBUF
     json:
-      mainTopic: test-topic
+      mainTopic: test-topic-json
       fallbackTopic : fallback
-      schemaFile: src/main/resources/TradeJsonSchema.json
-      schemaName: testjson
+      schemaName: local-test-topic-json
+    json_with_schema:
+      mainTopic: test-topic-json-schema
+      fallbackTopic: fallback
+      schemaFile: src/main/json/TradeJsonSchema.json
+      schemaName: local-test-topic-json-schema
     avro:
       mainTopic: test-avro
       fallbackTopic: fallback
-      schemaFile: src/main/resources/Trade.avsc
-      schemaName: testavro
+      schemaFile: src/main/avro/Trade.avsc
+      schemaName: local-testavro
     protobuf:
       mainTopic: test-avro
       fallbackTopic: fallback
-      schemaName: testprotobuf
+      schemaName: local-testprotobuf
 
 

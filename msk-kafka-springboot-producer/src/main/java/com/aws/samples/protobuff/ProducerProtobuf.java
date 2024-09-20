@@ -17,10 +17,10 @@ import java.io.IOException;
 import java.util.Map;
 
 @Component
-public class ProducerProtobuff extends Producer {
-    private final Logger logger = LoggerFactory.getLogger(ProducerProtobuff.class);
+public class ProducerProtobuf extends Producer {
+    private static final Logger logger = LoggerFactory.getLogger(ProducerProtobuf.class);
     @Autowired
-    MessageGeneratorProtobuff messageGenerator = new MessageGeneratorProtobuff();
+    MessageGeneratorProtobuf messageGenerator = new MessageGeneratorProtobuf();
     @Value("${spring.kafka.protobuf.mainTopic}")
     protected String topic;
     @Value("${spring.kafka.protobuf.fallbackTopic}")
@@ -45,7 +45,7 @@ public class ProducerProtobuff extends Producer {
 
     @Override
     public void generateAndSendMessage() throws Exception {
-        MessageGeneratorProtobuff.MessageContent messageContent = messageGenerator.generateMessage();
+        MessageGeneratorProtobuf.MessageContent messageContent = messageGenerator.generateMessage();
         sendMessageToMain(messageContent.message, messageContent.key);
     }
 

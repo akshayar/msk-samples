@@ -18,12 +18,12 @@ import java.util.Map;
 
 @Component
 public class ProducerJsonWithSchema extends Producer {
-    private final Logger logger = LoggerFactory.getLogger(ProducerJsonWithSchema.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProducerJsonWithSchema.class);
     @Autowired
     MessageGeneratorJson messageGenerator = new MessageGeneratorJson();
-    @Value("${spring.kafka.json.mainTopic}")
+    @Value("${spring.kafka.json_with_schema.mainTopic}")
     protected String topic;
-    @Value("${spring.kafka.json.fallbackTopic}")
+    @Value("${spring.kafka.json_with_schema.fallbackTopic}")
     protected String fallbackTopic;
     @Autowired
     private Environment env;
@@ -38,7 +38,7 @@ public class ProducerJsonWithSchema extends Producer {
     @Override
     protected Map<String, Object> senderProps() throws IOException {
         Map<String, Object> props=super.senderProps();
-        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, env().getProperty("spring.kafka.json.schemaName"));
+        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, env().getProperty("spring.kafka.json_with_schema.schemaName"));
         props.put(AWSSchemaRegistryConstants.DATA_FORMAT, DataFormat.JSON);
         return  props;
     }

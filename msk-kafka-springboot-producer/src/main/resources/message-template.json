@@ -4,5 +4,6 @@
   "timestamp": ${timestamp},
   "description": "${description}",
   "tradeId": "${tradeId}",
-  "orderId": "${orderId}"
+  "orderId": "${orderId}",
+  "name":"${name}"
 }
