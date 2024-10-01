@@ -80,7 +80,7 @@ export VPCId=vpc-111
 export Subnet1=subnet-11
 export Subnet2=subnet-11
 export Subnet3=subnet-11
-export NUMBER_OF_AZ=2
+export NUMBER_OF_AZ=3
 export NUMBER_OF_CLUSTERS=2
 
 echo "Creating MSK client SG"
@@ -100,7 +100,7 @@ else
     export TEMPLATE_FILE=msk-provisioned-cluster.yml
 fi
 if  [ ${NUMBER_OF_CLUSTERS} -eq 2 ]; then
-  create_source_sink_clusters_in_parallel
+    create_source_sink_clusters_in_parallel
 else
     create_single_cluster
 fi
