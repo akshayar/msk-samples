@@ -11,12 +11,15 @@ export MM2_CUSTOM_PLUGIN_ARN=
 export MM2_WORKER_CONFIG_ARN=
 export TASK_MAX=2
 export LOG_GROUP_NAME=/aws/msk-connect-mm2
+export name_prefix=mm21
+export CFT_TEMPLATE_FILE=cloudformation/mm2-msk-connect.yml
+#export CFT_TEMPLATE_FILE=cloudformation/mm2-msk-connect-iam.yml
 
 export TASK_MAX=2
 echo "Deploying MM2 MSK Connect Stack"
-aws cloudformation deploy --template-file cloudformation/mm2-msk-connect.yml \
+aws cloudformation deploy --template-file ${CFT_TEMPLATE_FILE} \
    --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-   --stack-name mm2-msk-connect  \
+   --stack-name ${name_prefix}-msk-connect  \
    --region ${REGION} \
    --disable-rollback \
    --parameter-overrides \
@@ -30,4 +33,5 @@ aws cloudformation deploy --template-file cloudformation/mm2-msk-connect.yml \
    MM2CustomPluginArn=${MM2_CUSTOM_PLUGIN_ARN} \
    TasksMax=${TASK_MAX} \
    MSKConnectConnectorLogGroup=${LOG_GROUP_NAME} \
-   WorkerConfigurationArn=${MM2_WORKER_CONFIG_ARN}
+   WorkerConfigurationArn=${MM2_WORKER_CONFIG_ARN} \
+   NamePrefix=${name_prefix}

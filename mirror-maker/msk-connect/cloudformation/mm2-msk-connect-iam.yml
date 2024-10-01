@@ -1,0 +1,350 @@
+Parameters:
+  SubnetAId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet A of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+  SubnetBId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet B of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+    Default: ""
+  DestinationClusterBootstrap:
+    Type: String
+    Description: Bootstrap Server detail of Kafka Cluster to which you want to attach the KafkaConnect Connector.
+  DestinationClusterSG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: MSK Security Group
+  SourceClusterBootstrap:
+    Type: String
+    Description: Bootstrap Server detail of Source Kafka Cluster from where MSK Connect will pull the stream data from
+  SourceClusterSG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: MSK Security Group
+  SourceTopic:
+    Type: String
+    Description: SourceTopic which needs to be replication
+    Default: .*
+  MM2CustomPluginArn:
+    Type: String
+    Description: ARN of the custom plugin
+  TasksMax:
+    Type: String
+    Description: Task Max
+  MSKConnectConnectorLogGroup:
+    Type: String
+    Default: /aws/msk-connect-mm2
+  WorkerConfigurationArn:
+    Type: String
+  TopicDefaultReplicationFactor:
+    Type: String
+    Default: 3
+  NamePrefix:
+    Type: String
+    Default: mm21
+
+Resources:
+  MirrorSourceConnector:
+    Type: AWS::KafkaConnect::Connector
+    Properties:
+      ConnectorDescription: MirrorSourceConnector
+      ConnectorName: !Sub '${NamePrefix}-MirrorSourceConnector'
+      KafkaCluster:
+        ApacheKafkaCluster:
+          BootstrapServers: !Ref DestinationClusterBootstrap
+          Vpc:
+            SecurityGroups:
+              - !Ref DestinationClusterSG
+              - !Ref SourceClusterSG
+            Subnets:
+              - !Ref SubnetAId
+              - !Ref SubnetBId
+      KafkaClusterClientAuthentication:
+        AuthenticationType: IAM
+      KafkaClusterEncryptionInTransit:
+        EncryptionType: TLS
+      KafkaConnectVersion: 2.7.1
+      LogDelivery:
+        WorkerLogDelivery:
+          CloudWatchLogs:
+            Enabled: true
+            LogGroup: !Ref MSKConnectConnectorLogGroup
+      Plugins:
+        - CustomPlugin:
+            CustomPluginArn: !Ref MM2CustomPluginArn
+            Revision: 1
+      ServiceExecutionRoleArn: !GetAtt MSKConnectRole.Arn
+      Capacity:
+        AutoScaling:
+          MaxWorkerCount: !Ref TasksMax
+          McuCount: 1
+          MinWorkerCount: 1
+          ScaleInPolicy:
+            CpuUtilizationPercentage: 20
+          ScaleOutPolicy:
+            CpuUtilizationPercentage: 80
+      WorkerConfiguration:
+        WorkerConfigurationArn: !Ref WorkerConfigurationArn
+        Revision: 1
+      ConnectorConfiguration:
+        connector.class: org.apache.kafka.connect.mirror.MirrorSourceConnector
+        clusters: ""
+        source.cluster.alias: ""
+        target.cluster.alias: ""
+        replication.policy.separator: ""
+        source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
+        target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
+        source.cluster.producer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        source.cluster.producer.security.protocol: SASL_SSL
+        source.cluster.producer.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.producer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        source.cluster.consumer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        source.cluster.consumer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        source.cluster.consumer.security.protocol: SASL_SSL
+        source.cluster.consumer.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        source.cluster.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.security.protocol: SASL_SSL
+        source.cluster.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        target.cluster.security.protocol: SASL_SSL
+        target.cluster.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.producer.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.producer.security.protocol: SASL_SSL
+        target.cluster.producer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.producer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        target.cluster.consumer.security.protocol: SASL_SSL
+        target.cluster.consumer.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.consumer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        target.cluster.consumer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        refresh.groups.enabled: true
+        refresh.groups.interval.seconds: 60
+        refresh.topics.interval.seconds: 60
+        topics.exclude: .*[-.]internal,.*.replica,__.*,.*-config,.*-status,.*-offset
+        emit.checkpoints.enabled: true
+        topics: !Ref SourceTopic
+        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        replication.factor: !Ref TopicDefaultReplicationFactor
+        producer.max.block.ms: 10000
+        producer.linger.ms: 500
+        producer.retry.backoff.ms: 1000
+        sync.topic.configs.enabled: true
+        sync.topic.configs.interval.seconds: 60
+        refresh.topics.enabled: true
+        groups.exclude: console-consumer-.*,connect-.*,__.*
+        consumer.auto.offset.reset: earliest
+        tasks.max: !Ref TasksMax
+        offset-syncs.topic.replication.factor: !Ref TopicDefaultReplicationFactor
+        sync.topic.acls.interval.seconds: 20
+        consumer.group.id: MirrorSourceConnector
+        producer.enable.idempotence: true
+  MSKConnectMirrorCheckpointConnector:
+    Type: AWS::KafkaConnect::Connector
+    Properties:
+      ConnectorDescription: MirrorCheckpointConnector
+      ConnectorName: !Sub '${NamePrefix}-MirrorCheckpointConnector'
+      KafkaCluster:
+        ApacheKafkaCluster:
+          BootstrapServers: !Ref DestinationClusterBootstrap
+          Vpc:
+            SecurityGroups:
+              - !Ref DestinationClusterSG
+              - !Ref SourceClusterSG
+            Subnets:
+              - !Ref SubnetAId
+              - !Ref SubnetBId
+      KafkaClusterClientAuthentication:
+        AuthenticationType: IAM
+      KafkaClusterEncryptionInTransit:
+        EncryptionType: TLS
+      KafkaConnectVersion: 2.7.1
+      LogDelivery:
+        WorkerLogDelivery:
+          CloudWatchLogs:
+            Enabled: true
+            LogGroup: !Ref MSKConnectConnectorLogGroup
+      Plugins:
+        - CustomPlugin:
+            CustomPluginArn: !Ref MM2CustomPluginArn
+            Revision: 1
+      ServiceExecutionRoleArn: !GetAtt MSKConnectRole.Arn
+      Capacity:
+        ProvisionedCapacity:
+          McuCount: 1
+          WorkerCount: 1
+      WorkerConfiguration:
+        WorkerConfigurationArn: !Ref WorkerConfigurationArn
+        Revision: 1
+      ConnectorConfiguration:
+        connector.class: org.apache.kafka.connect.mirror.MirrorCheckpointConnector
+        clusters: ""
+        source.cluster.alias: ""
+        target.cluster.alias: ""
+        replication.policy.separator: ""
+        source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
+        target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
+        target.cluster.security.protocol: SASL_SSL
+        target.cluster.producer.security.protocol: SASL_SSL
+        target.cluster.consumer.security.protocol: SASL_SSL
+        target.cluster.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.producer.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.consumer.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.producer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.consumer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        target.cluster.producer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        target.cluster.consumer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        source.cluster.security.protocol: SASL_SSL
+        source.cluster.producer.security.protocol: SASL_SSL
+        source.cluster.consumer.security.protocol: SASL_SSL
+        source.cluster.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.producer.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.consumer.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        source.cluster.producer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        source.cluster.consumer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::(Your Account Number):role/(Your IAM role)" awsDebugCreds=true;'
+        source.cluster.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        source.cluster.producer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        source.cluster.consumer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        topics: .*
+        topics.exclude: .*[-.]internal, .*.replica, __.*, .*-config, .*-status, .*-offset
+        groups.exclude: console-consumer-.*, connect-.*, __.*
+        refresh.groups.enabled: true
+        refresh.groups.interval.seconds: 60
+        emit.checkpoints.enabled: true
+        consumer.auto.offset.reset: earliest
+        producer.linger.ms: 500
+        producer.retry.backoff.ms: 1000
+        producer.max.block.ms: 10000
+        tasks.max: 1
+        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        replication.factor: !Ref TopicDefaultReplicationFactor
+        sync.group.offsets.interval.seconds: 5
+        checkpoints.topic.replication.factor: !Ref TopicDefaultReplicationFactor
+        emit.checkpoints.interval.seconds: 20
+        groups: .*
+        sync.group.offsets.enabled: true
+        consumer.group.id: MirrorCheckpointConnector
+  MirrorHeartbeatConnectorConnector:
+    Type: AWS::KafkaConnect::Connector
+    Properties:
+      ConnectorDescription: MirrorHeartbeatConnector
+      ConnectorName: !Sub '${NamePrefix}-MirrorHeartbeatConnector'
+      KafkaCluster:
+        ApacheKafkaCluster:
+          BootstrapServers: !Ref DestinationClusterBootstrap
+          Vpc:
+            SecurityGroups:
+              - !Ref DestinationClusterSG
+              - !Ref SourceClusterSG
+            Subnets:
+              - !Ref SubnetAId
+              - !Ref SubnetBId
+      KafkaClusterClientAuthentication:
+        AuthenticationType: IAM
+      KafkaClusterEncryptionInTransit:
+        EncryptionType: TLS
+      KafkaConnectVersion: 2.7.1
+      LogDelivery:
+        WorkerLogDelivery:
+          CloudWatchLogs:
+            Enabled: true
+            LogGroup: !Ref MSKConnectConnectorLogGroup
+      Plugins:
+        - CustomPlugin:
+            CustomPluginArn: !Ref MM2CustomPluginArn
+            Revision: 1
+      ServiceExecutionRoleArn: !GetAtt MSKConnectRole.Arn
+      Capacity:
+        ProvisionedCapacity:
+          McuCount: 1
+          WorkerCount: 1
+      WorkerConfiguration:
+        WorkerConfigurationArn: !Ref WorkerConfigurationArn
+        Revision: 1
+      ConnectorConfiguration:
+        connector.class: org.apache.kafka.connect.mirror.MirrorHeartbeatConnector
+        clusters: ""
+        source.cluster.alias: ""
+        target.cluster.alias: ""
+        replication.policy.separator: ""
+        source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
+        target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
+        target.cluster.security.protocol: SASL_SSL
+        target.cluster.producer.security.protocol: SASL_SSL
+        target.cluster.consumer.security.protocol: SASL_SSL
+        target.cluster.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.producer.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.consumer.sasl.mechanism: AWS_MSK_IAM
+        target.cluster.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.producer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.consumer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        target.cluster.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        target.cluster.producer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        target.cluster.consumer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        source.cluster.security.protocol: SASL_SSL
+        source.cluster.producer.security.protocol: SASL_SSL
+        source.cluster.consumer.security.protocol: SASL_SSL
+        source.cluster.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.producer.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.consumer.sasl.mechanism: AWS_MSK_IAM
+        source.cluster.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        source.cluster.producer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        source.cluster.consumer.sasl.jaas.config: !Sub 'software.amazon.msk.auth.iam.IAMLoginModule required awsRoleArn="arn:aws:iam::${AWS::AccountId}:role/${MSKConnectRole}" awsDebugCreds=true;'
+        source.cluster.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        source.cluster.producer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        source.cluster.consumer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+        topics: .*
+        topics.exclude: .*[-.]internal, .*.replica, __.*, .*-config, .*-status, .*-offset
+        groups.exclude: console-consumer-.*, connect-.*, __.*
+        refresh.groups.enabled: true
+        refresh.groups.interval.seconds: 60
+        emit.checkpoints.enabled: true
+        consumer.auto.offset.reset: earliest
+        producer.linger.ms: 500
+        producer.retry.backoff.ms: 1000
+        producer.max.block.ms: 10000
+        tasks.max: 1
+        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        replication.factor: !Ref TopicDefaultReplicationFactor
+        heartbeats.topic.replication.factor: !Ref TopicDefaultReplicationFactor
+        emit.heartbeats.interval.seconds: 20
+        consumer.group.id: MirrorHeartbeatConnector
+  MSKConnectRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kafkaconnect.amazonaws.com
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: sts:AssumeRole
+  MSKConnectPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: MSKConnectPolicyCFT
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: !GetAtt MSKConnectRole.Arn
+          - Effect: Allow
+            Action:
+              - 'kafkaconnect:*'
+              - 'kafka-cluster:*'
+              - 'kafka:*'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 's3:*'
+              - 'iam:PassRole'
+              - 'logs:*'
+              - 'ec2:*'
+            Resource: '*'
+      Roles:
+        - Ref: MSKConnectRole
