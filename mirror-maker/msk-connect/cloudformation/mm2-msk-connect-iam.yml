@@ -85,10 +85,10 @@ Resources:
         Revision: 1
       ConnectorConfiguration:
         connector.class: org.apache.kafka.connect.mirror.MirrorSourceConnector
-        clusters: ""
-        source.cluster.alias: ""
-        target.cluster.alias: ""
-        replication.policy.separator: ""
+        clusters: "source,target"
+        source.cluster.alias: "source"
+        target.cluster.alias: "target"
+        replication.policy.separator: "."
         source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
         target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
         source.cluster.producer.sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
@@ -120,10 +120,9 @@ Resources:
         refresh.topics.interval.seconds: 60
         topics.exclude: .*[-.]internal,.*.replica,__.*,.*-config,.*-status,.*-offset
         emit.checkpoints.enabled: true
-        topics: !Ref SourceTopic
-        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+        topics: .*
         value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
-        replication.factor: !Ref TopicDefaultReplicationFactor
+        key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
         producer.max.block.ms: 10000
         producer.linger.ms: 500
         producer.retry.backoff.ms: 1000
@@ -132,11 +131,8 @@ Resources:
         refresh.topics.enabled: true
         groups.exclude: console-consumer-.*,connect-.*,__.*
         consumer.auto.offset.reset: earliest
+        replication.factor: !Ref TopicDefaultReplicationFactor
         tasks.max: !Ref TasksMax
-        offset-syncs.topic.replication.factor: !Ref TopicDefaultReplicationFactor
-        sync.topic.acls.interval.seconds: 20
-        consumer.group.id: MirrorSourceConnector
-        producer.enable.idempotence: true
   MSKConnectMirrorCheckpointConnector:
     Type: AWS::KafkaConnect::Connector
     Properties:
@@ -176,10 +172,10 @@ Resources:
         Revision: 1
       ConnectorConfiguration:
         connector.class: org.apache.kafka.connect.mirror.MirrorCheckpointConnector
-        clusters: ""
-        source.cluster.alias: ""
-        target.cluster.alias: ""
-        replication.policy.separator: ""
+        clusters: "source,target"
+        source.cluster.alias: "source"
+        target.cluster.alias: "target"
+        replication.policy.separator: "."
         source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
         target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
         target.cluster.security.protocol: SASL_SSL
@@ -216,16 +212,11 @@ Resources:
         producer.linger.ms: 500
         producer.retry.backoff.ms: 1000
         producer.max.block.ms: 10000
+        replication.factor: !Ref TopicDefaultReplicationFactor
         tasks.max: 1
         key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
         value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
-        replication.factor: !Ref TopicDefaultReplicationFactor
         sync.group.offsets.interval.seconds: 5
-        checkpoints.topic.replication.factor: !Ref TopicDefaultReplicationFactor
-        emit.checkpoints.interval.seconds: 20
-        groups: .*
-        sync.group.offsets.enabled: true
-        consumer.group.id: MirrorCheckpointConnector
   MirrorHeartbeatConnectorConnector:
     Type: AWS::KafkaConnect::Connector
     Properties:
@@ -265,10 +256,10 @@ Resources:
         Revision: 1
       ConnectorConfiguration:
         connector.class: org.apache.kafka.connect.mirror.MirrorHeartbeatConnector
-        clusters: ""
-        source.cluster.alias: ""
-        target.cluster.alias: ""
-        replication.policy.separator: ""
+        clusters: "source,target"
+        source.cluster.alias: "source"
+        target.cluster.alias: "target"
+        replication.policy.separator: "."
         source.cluster.bootstrap.servers: !Ref SourceClusterBootstrap
         target.cluster.bootstrap.servers: !Ref DestinationClusterBootstrap
         target.cluster.security.protocol: SASL_SSL
@@ -305,13 +296,11 @@ Resources:
         producer.linger.ms: 500
         producer.retry.backoff.ms: 1000
         producer.max.block.ms: 10000
+        replication.factor: !Ref TopicDefaultReplicationFactor
         tasks.max: 1
         key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
         value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
-        replication.factor: !Ref TopicDefaultReplicationFactor
-        heartbeats.topic.replication.factor: !Ref TopicDefaultReplicationFactor
-        emit.heartbeats.interval.seconds: 20
-        consumer.group.id: MirrorHeartbeatConnector
+
   MSKConnectRole:
     Type: AWS::IAM::Role
     Properties:
