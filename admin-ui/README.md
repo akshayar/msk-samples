@@ -12,10 +12,10 @@ docker run     -p 8080:8080 \
 ### Pre-requisite
 1. Create an ECS cluster with Fargate as the "Infrastructure" option. 
 ### Deployment Steps
-1. The deployment assumes that you have two clusters to administer, both allow plaintext auth. Both source and destination clusters are on AWS. They can either be MSK or self-hosted EC2.
-2. The ECS task will have 3 SGs assigned - cluster SGs and an SG that gets created by the CFT. 
+1. The deployment works with both IAM and plaintext auth. You can either deploy UI for two clusters on single deployment and for single cluster on a deployment. They can either be MSK or self-hosted EC2.
+2. The ECS task will have SGs of cluster attached along with another SG which get created by the CFT. 
 3. Clusters SGs have self referencing rules on required port. 
-4. Update parameters in `admin-ui/deploy.sh`. If you have just one cluster to monitor make SOURCE_KAFKA_CLUSTER_BOOTSTRAP and DESTINATION_KAFKA_CLUSTER_BOOTSTRAP same. 
+4. Update parameters in `admin-ui/deploy.sh`.  
 5. Run following command to deploy AKHQ using ECS service  -
 ```shell
 cd $SOURCE_ROOT/admin-ui

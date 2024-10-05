@@ -2,11 +2,11 @@
 ## Parameters
 export ECS_CLUSTER_NAME=ForMSK
 export REGION=ap-south-1
-export SOURCE_KAFKA_CLUSTER_BOOTSTRAP=""
-export MSKCluster1SG=
-export ECS_ALB_VPC=
-export ECS_ALB_PublicSubnet1=
-export ECS_ALB_PublicSubnet2=
+export SOURCE_KAFKA_CLUSTER_BOOTSTRAP="b-1:9098,b-2:9098,b-3:9098"
+export MSKCluster1SG=sg-11111
+export ECS_ALB_VPC=vpc-1111
+export ECS_ALB_PublicSubnet1=subnet-111
+export ECS_ALB_PublicSubnet2=subnet-111
 
 
 echo "Fetching ECS cluster ARN"
