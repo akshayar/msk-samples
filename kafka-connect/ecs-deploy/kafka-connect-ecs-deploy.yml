@@ -1,8 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
-  SourceKafkaClusterBootstrap:
-    Type: String
-    Description: Source cluster bootstrap.
   DestinationKafkaClusterBootstrap:
     Type: String
     Description: Destination cluster bootstrap.
@@ -41,15 +38,25 @@ Parameters:
   ReplicationFactor:
     Type: String
     Default: 3
+  ContainerImage:
+    Type: String
+    Default: "arawa3/kafka-connect-mm2"
+  AuthType:
+    Type: String
+    Default: IAM
+  PluginZipS3Path:
+    Type:  String
+    Default: ""
 Conditions:
   CreateService:  !Equals [!Ref CreateService, 'true']
 Resources:
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Join ['', [/ecs/, kafka-connect-mm2, TaskDefinition]]
+      LogGroupName: !Sub '/ecs/${AWS::StackName}'
 
-  MM2TaskRole:
+
+  KCTaskRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -62,16 +69,32 @@ Resources:
             Action:
               - sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonMSKFullAccess
         - arn:aws:iam::aws:policy/CloudWatchFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+        - arn:aws:iam::aws:policy/AWSGlueSchemaRegistryFullAccess
       Path: /
-  MM2TaskDefinition:
+  KCTaskRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: KCKMSPolicyCFT
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - kms:Decrypt
+              - 'kafka-cluster:*'
+            Resource: "*"
+      Roles:
+        - Ref: KCTaskRole
+  KCTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     DependsOn: LogGroup
     Properties: 
       ContainerDefinitions: 
-        - Name: kafka-connect-mm2
-          Image: arawa3/kafka-connect-mm2
+        - Name: !Sub '${AWS::StackName}'
+          Image: !Sub '${ContainerImage}'
           PortMappings:
             - ContainerPort: 8083
             - ContainerPort: 9901
@@ -80,20 +103,26 @@ Resources:
             Options:
               awslogs-region: !Ref "AWS::Region"
               awslogs-group: !Ref LogGroup
-              awslogs-stream-prefix: kafka-connect-mm2
+              awslogs-stream-prefix: kafka-connect
           Environment:
-            - Name: DESTINATION_BOOTSTRAP_SERVER
+            - Name: BOOTSTRAP_SERVER
               Value: !Ref DestinationKafkaClusterBootstrap
             - Name: GROUP_ID
-              Value: 1
+              Value: !Sub '${AWS::StackName}'
             - Name: CONFIG_STORAGE_TOPIC
-              Value: mm2-config-2
+              Value: !Sub '${AWS::StackName}-config'
             - Name: OFFSET_STORAGE_TOPIC
-              Value: mm2-offset-2
+              Value: !Sub '${AWS::StackName}-offset'
             - Name: STATUS_STORAGE_TOPIC
-              Value: mm2-status-2
+              Value: !Sub '${AWS::StackName}-status'
             - Name: REPLICATION_FACTOR
               Value: !Ref ReplicationFactor
+            - Name: PLUGIN_ZIP_S3_PATH
+              Value: !Ref PluginZipS3Path
+            - Name: AWS_REGION
+              Value: !Ref "AWS::Region"
+            - Name: AUTH_TYPE
+              Value: !Ref AuthType
           DockerLabels:
             PROMETHEUS_EXPORTER_PORT: 9901
       Cpu: 2048
@@ -101,25 +130,26 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities: 
         - FARGATE
-      ExecutionRoleArn: !GetAtt MM2TaskRole.Arn
-  MM2Service:
+      ExecutionRoleArn: !GetAtt KCTaskRole.Arn
+      TaskRoleArn: !GetAtt KCTaskRole.Arn
+  KCService:
     Type: AWS::ECS::Service
-    DependsOn:  MM2ALBListener
+    DependsOn:  KCALBListener
     Condition: CreateService
     Properties:
       Cluster: !Ref ECSClusterArn
       DesiredCount: !Ref DesiredCount
       LoadBalancers:
-        - ContainerName: "kafka-connect-mm2"
+        - ContainerName: !Sub '${AWS::StackName}'
           ContainerPort: 8083
-          TargetGroupArn: !Ref MM2ALBTargetGroup
+          TargetGroupArn: !Ref KCALBTargetGroup
       NetworkConfiguration:
         AwsvpcConfiguration:
           Subnets:
             - !Ref PublicSubnet1
             - !Ref PublicSubnet2
           SecurityGroups:
-            - !Ref MM2ECSSecurityGroup
+            - !Ref KCECSSecurityGroup
             - !Ref MSKCluster1SG
             - !Ref MSKCluster2SG
           AssignPublicIp: ENABLED
@@ -127,10 +157,10 @@ Resources:
         DeploymentCircuitBreaker:
           Enable: true
           Rollback: true
-      TaskDefinition: !Ref MM2TaskDefinition
-      ServiceName: "kafka-connect-mm2"
+      TaskDefinition: !Ref KCTaskDefinition
+      ServiceName: !Sub '${AWS::StackName}'
       LaunchType: FARGATE
-  MM2ALBSecurityGroup:
+  KCALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: ELB Security Group
@@ -140,7 +170,7 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-  MM2ECSSecurityGroup:
+  KCECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: EC2 Security Group
@@ -151,9 +181,9 @@ Resources:
           ToPort: 8083
           SourceSecurityGroupId:
             Fn::GetAtt:
-              - MM2ALBSecurityGroup
+              - KCALBSecurityGroup
               - GroupId
-  MM2ALBTargetGroup:
+  KCALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckIntervalSeconds: 30
@@ -168,28 +198,28 @@ Resources:
       UnhealthyThresholdCount: 3
       VpcId: !Ref VPC
       TargetType: ip
-  MM2ALBListener:
+  KCALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
-    DependsOn: MM2ALB
+    DependsOn: KCALB
     Properties:
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref MM2ALBTargetGroup
-      LoadBalancerArn: !Ref MM2ALB
+          TargetGroupArn: !Ref KCALBTargetGroup
+      LoadBalancerArn: !Ref KCALB
       Port: 80
       Protocol: HTTP
-  MM2ALB:
+  KCALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: kafka-connect-mm2
+      Name: !Sub '${AWS::StackName}'
       Scheme: internal
       SecurityGroups:
-        - !GetAtt MM2ALBSecurityGroup.GroupId
+        - !GetAtt KCALBSecurityGroup.GroupId
       Subnets:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
 
 Outputs:
-  MM2Url:
-    Description: MM2 URL
-    Value: !GetAtt MM2ALB.DNSName
+  KCUrl:
+    Description: Kafka Connect URL
+    Value: !GetAtt KCALB.DNSName

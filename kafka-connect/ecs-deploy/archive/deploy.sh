@@ -1,17 +1,16 @@
 #!/bin/bash
 ## Parameters
-export ECS_CLUSTER_NAME=mm2-fargate-cluster
+export ECS_CLUSTER_NAME=ecs-fargate
 export REGION=ap-south-1
-export SOURCE_KAFKA_CLUSTER_BOOTSTRAP=""
 export DESTINATION_KAFKA_CLUSTER_BOOTSTRAP=""
-export MSKCluster1SG=sg-0bc9fa1111111
-export MSKCluster2SG=sg-0b909a2222222
-export ECS_ALB_VPC=vpc-0111111111
-export ECS_ALB_PublicSubnet1=subnet-0d1111111111
-export ECS_ALB_PublicSubnet2=subnet-032222222222
+export MSKCluster1SG=sg-111
+export MSKCluster2SG=sg-111
+export ECS_ALB_VPC=vpc-111
+export ECS_ALB_PublicSubnet1=subnet-111
+export ECS_ALB_PublicSubnet2=subnet-11
 ## Uncomment and change the image name if you built an image.
-#export KafkaConnectImage=arawa3/kafka-connect-mm2
-export REPLICATION_FACTOR=2
+export KafkaConnectImage=arawa3/kafka-connect-mm2
+export REPLICATION_FACTOR=3
 
 
 echo "Fetching ECS cluster ARN"
@@ -26,7 +25,6 @@ aws cloudformation deploy --template-file kafka-connect-mm2-ecs-deploy.yml \
    --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
    --stack-name kafka-connect-ecs-deploy  \
    --parameter-overrides \
-   SourceKafkaClusterBootstrap=${SOURCE_KAFKA_CLUSTER_BOOTSTRAP} \
    DestinationKafkaClusterBootstrap=${DESTINATION_KAFKA_CLUSTER_BOOTSTRAP} \
    ECSClusterArn=${ECS_CLUSTER_ARN} \
    ECSServiceRoleArn=${AWS_ECS_SERVICE_ROLE_ARN} \

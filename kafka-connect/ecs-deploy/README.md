@@ -1,12 +1,12 @@
 ## Build Kafka connect image [If required]
-1. The kafka connect image is built with default properties specified at `mirror-maker/docker-image-build-mm2/connect-distributed.properties`. 
+1. The kafka connect image is built with default properties specified at `kafka-connect/docker-image-build/connect-distributed.properties` or `kafka-connect/docker-image-build/connect-distributed-iam.properties`. 
 2. You need to build the image if you want to modify default properties. If not skip the steps below. 
-2. Update `mirror-maker/docker-image-build-mm2/connect-distributed.properties` with additional parameters if required. Refer to the defaults which are used. 
+2. Update `kafka-connect/docker-image-build/connect-distributed.properties` with additional parameters if required. Refer to the defaults which are used. 
 2. Execute following commands to build and push docker image. 
 ```shell
 cd $SOURCE_ROOT
-cd ./mirror-maker/docker-image-build-mm2
-./build.sh <image_tag[arawa3/kafka-connect-mm2]> <push_to_dh[true|false]>
+cd ./kafka-connect/docker-image-build
+./build.sh <image_tag[arawa3/kafka-connect-mm2]> <push_to_dh[true|false]> <plugin zip file s3 path>
 # Ex  ./build.sh arawa3/kafka-connect-mm2 true
 ```
 
@@ -31,7 +31,7 @@ curl -s ${MM2Url}/connectors
 7. Got to `Deploy MM2 connectors` section and execute command to run the 2 connectors required for MM2.
 
 ## Deploy using Docker on EC2 single node
-1. Update `mirror-maker/ec2-docker-mm2/docker-compose-kafka-connect.yaml`  and update value of DESTINATION_BOOTSTRAP_SERVER.
+1. Update `mirror-maker/ec2-docker-mm2/docker-compose-kafka-connect.yaml`  and update value of TARGET_BOOTSTRAP_SERVER.
 2. If you built a new image, update the image referred in `mirror-maker/ec2-docker-mm2/docker-compose-kafka-connect.yaml` .
 3. Execute following commands to run the Kafka connect.
 ```shell
