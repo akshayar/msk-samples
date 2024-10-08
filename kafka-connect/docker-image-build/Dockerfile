@@ -6,11 +6,6 @@ RUN install_packages python3 python3-pip && pip3 install awscli
 
 RUN mkdir -p /tmp/kafka
 
-RUN git -C /tmp/kafka clone https://github.com/aws-samples/sasl-scram-secrets-manager-client-for-msk.git
-RUN cd /tmp/kafka/sasl-scram-secrets-manager-client-for-msk/ && \
-    mvn clean install -q -f pom.xml && cp target/SaslScramSecretsManagerClient-1.0-SNAPSHOT.jar /tmp/kafka
-RUN cd /tmp/kafka && rm -rf sasl-scram-secrets-manager-client-for-msk
-
 RUN mvn -q org.apache.maven.plugins:maven-dependency-plugin:2.4:get  \
     -DremoteRepositories=http://download.java.net/maven/2 \
     -DgroupId=software.amazon.msk -DartifactId=aws-msk-iam-auth -Dversion=2.0.3 -Dclassifier=all \
