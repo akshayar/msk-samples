@@ -1,6 +1,5 @@
 package com.aws.samples.json;
 
-import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
 import com.aws.samples.Producer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +36,8 @@ public class ProducerJson extends Producer {
     @Override
     protected Map<String, Object> senderProps() throws IOException {
         Map<String, Object> props=super.senderProps();
-        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, env().getProperty("spring.kafka.json.schemaName"));
-        props.put(AWSSchemaRegistryConstants.DATA_FORMAT, DataFormat.JSON);
+        props.put("schemaName", env().getProperty("spring.kafka.avro.schemaName"));
+        props.put("dataFormat", DataFormat.JSON);
         return  props;
     }
 

@@ -1,6 +1,5 @@
 package com.aws.samples.protobuff;
 
-import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
 import com.aws.samples.Producer;
 import com.google.protobuf.DynamicMessage;
 import org.slf4j.Logger;
@@ -38,8 +37,8 @@ public class ProducerProtobuf extends Producer {
     @Override
     protected Map<String, Object> senderProps() throws IOException {
         Map<String, Object> props=super.senderProps();
-        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, env().getProperty("spring.kafka.protobuf.schemaName"));
-        props.put(AWSSchemaRegistryConstants.DATA_FORMAT, DataFormat.PROTOBUF);
+        props.put("schemaName", env().getProperty("spring.kafka.avro.schemaName"));
+        props.put("dataFormat", DataFormat.PROTOBUF);
         return  props;
     }
 

@@ -1,6 +1,5 @@
 package com.aws.samples.avro;
 
-import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants;
 import com.aws.samples.Producer;
 import org.apache.avro.generic.GenericRecord;
 import org.slf4j.Logger;
@@ -41,8 +40,8 @@ public class ProducerAvro extends Producer
     @Override
     protected Map<String, Object> senderProps() throws IOException {
         Map<String, Object> props=super.senderProps();
-        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, env().getProperty("spring.kafka.avro.schemaName"));
-        props.put(AWSSchemaRegistryConstants.DATA_FORMAT, DataFormat.AVRO);
+        props.put("schemaName", env().getProperty("spring.kafka.avro.schemaName"));
+        props.put("dataFormat", DataFormat.AVRO);
         return  props;
     }
     @Override
