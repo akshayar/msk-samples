@@ -18,27 +18,18 @@ cd ./kafka-connect/docker-image-build
 ```shell
 aws ecs create-cluster --cluster-name mm2-fargate-cluster
 ```
-5. Update parameters in `mirror-maker/ecs-mm2/deploy.sh`.
+5. Update parameters in `kafka-connect/ecs-deploy/deploy.sh`.
 6. Run following command to deploy the Kafka connect using ECS services -
 ```shell
-cd $SOURCE_ROOT/mirror-maker/ecs-mm2
+cd $SOURCE_ROOT/kafka-connect/ecs-deploy
 ./deploy.sh
 ```
-6. Once deployed, refer the output of the stack and follow MM2Url to access the Kafka connect REST commands.
+6. Once deployed, refer the output of the stack and follow KCUrl to access the Kafka connect REST commands.
 ```shell
 curl -s ${MM2Url}/connectors
 ```
-7. Got to `Deploy MM2 connectors` section and execute command to run the 2 connectors required for MM2.
+7. Got to `Deploy MM2 connectors` section for MM2 connector deploy instructions. 
 
-## Deploy using Docker on EC2 single node
-1. Update `mirror-maker/ec2-docker-mm2/docker-compose-kafka-connect.yaml`  and update value of TARGET_BOOTSTRAP_SERVER.
-2. If you built a new image, update the image referred in `mirror-maker/ec2-docker-mm2/docker-compose-kafka-connect.yaml` .
-3. Execute following commands to run the Kafka connect.
-```shell
-cd $SOURCE_ROOT/mirror-maker/ec2-docker-mm2
-docker-compose -f docker-compose-kafka-connect.yaml up 
-```
-4. Got to `Deploy MM2 connectors` section and execute command to run the 2 connectors required for MM2.
 
 ## Deploy MM2 connectors
 ```shell
