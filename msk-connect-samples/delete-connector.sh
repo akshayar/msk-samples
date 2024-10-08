@@ -22,3 +22,4 @@ done
 date_delete_done=$(date +%s)
 echo "Deleted in $((date_delete_done - date_delete)) seconds $connector_arn "
 exit 0
+

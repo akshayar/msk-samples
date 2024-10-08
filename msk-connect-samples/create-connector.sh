@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 # Create and wait for connector to fail or succeed
 #
 export template_file=$1
@@ -23,19 +23,18 @@ export connector_arn=$(aws kafkaconnect create-connector --cli-input-json file:/
 if  [ -z "$connector_arn" ]; then
     echo "Failed to create connector"
     exit 1
-else
-  echo "Connector ARN: $connector_arn"
-  echo "Waiting for connector to be created"
-  while true; do
-      sleep $polling_interval_sec
-      export connectorState=$(aws kafkaconnect describe-connector --connector-arn $connector_arn --query 'connectorState' --output text)
-      echo "Connector state: $connectorState"
-      if [ "$connectorState" == "RUNNING" ] || [ "$connectorState" == "FAILED" ]; then
-          break
-      fi
-  done
-  date_create_done=$(date +%s)
-  echo "Created in $((date_create_done - date_create)) seconds, Connector $connector_arn"
-  exit 0
 fi
+echo "Connector ARN: $connector_arn"
+echo "Waiting for connector to be created"
+while true; do
+    sleep $polling_interval_sec
+    export connectorState=$(aws kafkaconnect describe-connector --connector-arn $connector_arn --query 'connectorState' --output text)
+    echo "Connector state: $connectorState"
+    if [ "$connectorState" == "RUNNING" ] || [ "$connectorState" == "FAILED" ]; then
+        break
+    fi
+done
+date_create_done=$(date +%s)
+echo "Created in $((date_create_done - date_create)) seconds, Connector $connector_arn"
+exit 0
 

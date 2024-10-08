@@ -1,0 +1,26 @@
+<project
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.aws.samples</groupId>
+        <artifactId>debezium-connector-postgres-aws-config</artifactId>
+        <version>2.7.2.Final</version>
+        <relativePath>../pom-debezium-connector-postgres-aws-config.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>debezium-connector-postgres-gsr-avro</artifactId>
+    <packaging>pom</packaging>
+    <name>Debezium Connector for PostgreSQL with AWS Config and Glue Schema Registry with avro Dependencies dependencies</name>
+    <properties>
+        <aws.gsr.version>1.1.19</aws.gsr.version>
+    </properties>
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/software.amazon.glue/schema-registry-kafkaconnect-converter -->
+        <dependency>
+            <groupId>software.amazon.glue</groupId>
+            <artifactId>schema-registry-kafkaconnect-converter</artifactId>
+            <version>1.1.19</version>
+        </dependency>
+    </dependencies>
+</project>

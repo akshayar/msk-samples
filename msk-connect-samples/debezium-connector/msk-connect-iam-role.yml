@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  LogGroupName:
+    Type: String
+    Default: /msk-connect/mysql-connector
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref LogGroupName
+  mskConnectManagedPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Policy for MSk Connect
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:Connect"
+              - "kafka-cluster:AlterCluster"
+              - "kafka-cluster:DescribeCluster"
+            Resource: !Sub "arn:aws:kafka:${AWS::Region}:${AWS::AccountId}:cluster/*"
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:DescribeTopicDynamicConfiguration"
+              - "kafka-cluster:*Topic*"
+              - "kafka-cluster:WriteData"
+              - "kafka-cluster:ReadData"
+            Resource: !Sub "arn:aws:kafka:${AWS::Region}:${AWS::AccountId}:topic/*"
+          - Effect: Allow
+            Action:
+              - "kafka-cluster:AlterGroup"
+              - "kafka-cluster:DescribeGroup"
+            Resource: !Sub "arn:aws:kafka:${AWS::Region}:${AWS::AccountId}:group/*"
+          - Effect: Allow
+            Action: 'kafka:GetBootstrapBrokers'
+            Resource: !Sub "arn:aws:kafka:${AWS::Region}:${AWS::AccountId}:cluster/*"
+          - Effect: Allow
+            Action:
+              - "secretsmanager:GetResourcePolicy"
+              - "secretsmanager:GetSecretValue"
+              - "secretsmanager:DescribeSecret"
+              - "secretsmanager:ListSecretVersionIds"
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:CreateGrant"
+              - "kms:DescribeKey"
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "s3:GetObject"
+              - "s3:GetObjectAcl"
+            Resource: "arn:aws:s3:::aksh-code-binaries-2/*"
+  mskConnectRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "kafkaconnect.amazonaws.com"
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref mskConnectManagedPolicy
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Path: /
+Outputs:
+  IAMRoleArn:
+    Description: IAM Role Arn
+    Value: !GetAtt mskConnectRole.Arn
