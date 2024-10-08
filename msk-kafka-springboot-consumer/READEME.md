@@ -1,1 +1,0 @@
-// Faker template this could be used in values are "counter", "id", "name", "email", "phone", "tradeId", "orderId", "portfolioId", "customerId", "symbol", "timestamp", "orderTimestamp", "description", "traderName", "traderFirm", "buy", "currentPosition", "quantity", "price", "buyPrice", "sellPrice", "profit"
